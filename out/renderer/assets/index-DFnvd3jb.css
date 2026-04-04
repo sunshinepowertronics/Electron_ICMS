@@ -85,120 +85,10 @@
   color: var(--accent);
 }
 
-.connect-button--connected {
-  justify-content: flex-start;
-  gap: 0.45rem;
-  max-width: min(15rem, 42vw);
-  padding-left: 0.45rem;
-  padding-right: 0.65rem;
-  color: #fff;
-  background: rgba(88, 166, 255, 0.28);
-  border-color: rgba(121, 184, 255, 0.85);
-  box-shadow:
-    0 0 0 1px rgba(88, 166, 255, 0.2) inset,
-    0 0 18px rgba(88, 166, 255, 0.35);
-}
-
-.connect-button--connected:hover {
-  color: #fff;
-  background: rgba(88, 166, 255, 0.38);
-  border-color: var(--accent-hover);
-  box-shadow:
-    0 0 0 1px rgba(121, 184, 255, 0.35) inset,
-    0 0 22px rgba(88, 166, 255, 0.48);
-}
-
 .connect-usb-icon {
   display: block;
   width: 1.35rem;
   height: 1.35rem;
-  flex-shrink: 0;
-}
-
-.connect-button-port {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  text-align: left;
-}
-
-.serial-readout {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.12);
-  max-height: min(14rem, 38vh);
-  min-height: 0;
-}
-
-.serial-readout-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem 1rem;
-  padding: 0.55rem 1rem;
-  border-bottom: 1px solid rgba(45, 58, 79, 0.45);
-}
-
-.serial-readout-dot {
-  flex-shrink: 0;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: #3fb950;
-  box-shadow: 0 0 8px rgba(63, 185, 80, 0.55);
-}
-
-.serial-readout-summary {
-  margin: 0;
-  flex: 1;
-  min-width: 0;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: var(--text-muted);
-}
-
-.serial-readout-summary strong {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.serial-readout-sep::before {
-  content: '·';
-  margin: 0 0.4rem;
-  opacity: 0.65;
-}
-
-.serial-readout-log {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 0.5rem 1rem 0.65rem;
-  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--text-muted);
-}
-
-.serial-readout-placeholder {
-  margin: 0;
-  font-style: italic;
-  opacity: 0.85;
-}
-
-.serial-readout-line {
-  padding: 0.12rem 0;
-  color: var(--text);
-  word-break: break-all;
-}
-
-.serial-readout-line + .serial-readout-line {
-  border-top: 1px solid rgba(45, 58, 79, 0.35);
 }
 
 .connect-modal-backdrop {
@@ -440,17 +330,6 @@
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
-}
-
-.connect-modal-error {
-  margin: 0 1.35rem 0;
-  padding: 0.65rem 0.85rem;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: #ff7b72;
-  background: rgba(248, 81, 73, 0.1);
-  border: 1px solid rgba(248, 81, 73, 0.28);
-  border-radius: 8px;
 }
 
 .connect-modal-footer {
@@ -1609,4 +1488,48 @@ button.nav-link {
   .auth-submit {
     width: 214px;
   }
+}
+:root {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --border: #2d3a4f;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-hover: #79b8ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-hover);
 }

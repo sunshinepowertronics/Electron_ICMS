@@ -1,6 +1,29 @@
-import { app, BrowserWindow, Menu, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+import { SerialPort } from 'serialport'
 import { join } from 'path'
 import type { MenuItemConstructorOptions } from 'electron'
+
+let activeSerialPort: SerialPort | null = null
+let serialSession: { path: string; baudRate: number; slaveId: string } | null = null
+
+function broadcastSerial(channel: string, payload: unknown): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send(channel, payload)
+  }
+}
+
+function closeActiveSerial(): void {
+  serialSession = null
+  if (!activeSerialPort) return
+  const p = activeSerialPort
+  activeSerialPort = null
+  try {
+    p.removeAllListeners()
+    if (p.isOpen) p.close()
+  } catch {
+    // ignore
+  }
+}
 
 function createApplicationMenu(): void {
   const isMac = process.platform === 'darwin'
@@ -52,10 +75,35 @@ function createApplicationMenu(): void {
     {
       label: 'View',
       submenu: [
+        {
+          label: 'Display Options',
+          submenu: [
+            {
+              label: 'Show Data',
+              type: 'checkbox',
+              checked: true,
+              click: (item, focusedWindow) => {
+                const win =
+                  (focusedWindow as BrowserWindow | undefined) ?? BrowserWindow.getFocusedWindow()
+                win?.webContents.send('display-options:show-data', item.checked)
+              },
+            },
+            {
+              label: 'Show Traffic',
+              type: 'checkbox',
+              checked: false,
+              click: (item, focusedWindow) => {
+                const win =
+                  (focusedWindow as BrowserWindow | undefined) ?? BrowserWindow.getFocusedWindow()
+                win?.webContents.send('display-options:show-traffic', item.checked)
+              },
+            },
+          ],
+        },
+        { type: 'separator' as const },
         { role: 'resetZoom' as const },
         { role: 'zoomIn' as const },
         { role: 'zoomOut' as const },
-        { type: 'separator' as const },
         { role: 'togglefullscreen' as const },
       ],
     },
@@ -101,6 +149,104 @@ function createWindow(): void {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+function serialPortLabel(p: {
+  path: string
+  friendlyName?: string
+  manufacturer?: string
+  serialNumber?: string
+}): string {
+  const path = p.path
+  const friendly = p.friendlyName?.trim()
+  if (friendly) return `${friendly} (${path})`
+  const mfr = p.manufacturer?.trim()
+  if (mfr) {
+    const sn = p.serialNumber?.trim()
+    return sn ? `${mfr} · ${sn} — ${path}` : `${mfr} — ${path}`
+  }
+  return path
+}
+
+ipcMain.handle('serial:list-ports', async () => {
+  try {
+    const ports = await SerialPort.list()
+    return ports.map((p) => ({
+      path: p.path,
+      label: serialPortLabel(p),
+    }))
+  } catch {
+    return []
+  }
+})
+
+ipcMain.handle(
+  'serial:open',
+  async (
+    _e,
+    opts: { path: string; baudRate: number; slaveId: string },
+  ): Promise<
+    | { ok: true; path: string; baudRate: number; slaveId: string }
+    | { ok: false; error: string }
+  > => {
+    const path = opts.path?.trim()
+    const baudRate = Number(opts.baudRate)
+    const slaveId = opts.slaveId != null ? String(opts.slaveId).trim() : ''
+    if (!path) return { ok: false, error: 'No port selected' }
+    if (!Number.isFinite(baudRate) || baudRate <= 0) return { ok: false, error: 'Invalid baud rate' }
+
+    closeActiveSerial()
+
+    return await new Promise((resolve) => {
+      let settled = false
+      const port = new SerialPort({ path, baudRate })
+      const fail = (err: Error) => {
+        if (settled) return
+        settled = true
+        try {
+          port.removeAllListeners()
+          if (port.isOpen) port.close()
+        } catch {
+          // ignore
+        }
+        resolve({ ok: false as const, error: err.message })
+      }
+      port.once('error', fail)
+      port.once('open', () => {
+        if (settled) return
+        settled = true
+        port.off('error', fail)
+        activeSerialPort = port
+        serialSession = { path, baudRate, slaveId }
+        port.on('data', (buf) => {
+          const hex = [...buf]
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join(' ')
+          broadcastSerial('serial:data', { hex, length: buf.length })
+        })
+        port.on('error', (err) => {
+          broadcastSerial('serial:error', err.message)
+        })
+        resolve({ ok: true as const, path, baudRate, slaveId })
+      })
+    })
+  },
+)
+
+ipcMain.handle('serial:close', async () => {
+  closeActiveSerial()
+  return { ok: true as const }
+})
+
+ipcMain.handle('serial:status', async () => {
+  if (!serialSession || !activeSerialPort?.isOpen) {
+    return { connected: false as const }
+  }
+  return { connected: true as const, ...serialSession }
+})
+
+app.on('before-quit', () => {
+  closeActiveSerial()
+})
 
 app.whenReady().then(() => {
   createApplicationMenu()
