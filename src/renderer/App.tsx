@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { BrowserRouter, Routes, Route, NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  NavLink,
+  Outlet,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from 'react-router-dom'
 import './App.css'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -16,9 +25,14 @@ import { SidebarNavIcon } from './components/SidebarNavIcon'
 import { getProductNavFromStorage, tailNavItems } from './utils/productNav'
 import { DisplayViewProvider } from './context/DisplayViewContext'
 import { STORAGE_FIRMWARE, STORAGE_MODEL } from './utils/deviceStorage'
+import { getMonitorQueryTemplates, getSettingsQueryTemplates } from './utils/monitorParamsFromProduct'
+import { buildModbusRtuFrame } from '../shared/modbusRtu'
+
 type SerialPortListItem = { path: string; label: string }
 
 const BAUD_RATES = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600] as const
+
+const MONITOR_POLL_MS = 600
 
 function serialPortFieldCopy(platform: string): { label: string; selectPlaceholder: string } {
   if (platform === 'win32') {
@@ -277,6 +291,7 @@ function SidebarLogoutButton({ label }: { label: string }) {
 }
 
 function AppLayout() {
+  const location = useLocation()
   const storedModel = localStorage.getItem(STORAGE_MODEL)?.trim() ?? ''
   const storedFirmware = localStorage.getItem(STORAGE_FIRMWARE)?.trim() ?? ''
 
@@ -290,7 +305,13 @@ function AppLayout() {
   const [serialLines, setSerialLines] = useState<string[]>([])
   const serialLineKey = useRef(0)
   const [displayView, setDisplayView] = useState<'data' | 'traffic'>('data')
+  const [toolbarNow, setToolbarNow] = useState(() => new Date())
   const productNav = getProductNavFromStorage()
+
+  useEffect(() => {
+    const id = window.setInterval(() => setToolbarNow(new Date()), 1000)
+    return () => window.clearInterval(id)
+  }, [])
 
   useEffect(() => {
     return window.icms.onDisplayView((view) => setDisplayView(view))
@@ -301,7 +322,7 @@ function AppLayout() {
       serialLineKey.current += 1
       const id = serialLineKey.current
       setSerialLines((prev) => {
-        const next = [...prev, `${id}\t${hex}`]
+        const next = [...prev, `${id}\t[RX] ${hex}`]
         return next.length > 500 ? next.slice(-500) : next
       })
     })
@@ -318,6 +339,74 @@ function AppLayout() {
       offErr()
     }
   }, [])
+
+  useEffect(() => {
+    if (location.pathname !== '/settings' && location.pathname !== '/dashboard') return
+    setSerialLines([])
+    serialLineKey.current = 0
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!serialSession) return
+
+    const path = location.pathname
+    const pollSettings = path === '/settings'
+    const pollMonitor = path === '/dashboard'
+    if (!pollSettings && !pollMonitor) return
+
+    const model = localStorage.getItem(STORAGE_MODEL)
+    const fw = localStorage.getItem(STORAGE_FIRMWARE)
+    const templates = pollSettings
+      ? getSettingsQueryTemplates(model, fw)
+      : getMonitorQueryTemplates(model, fw)
+    if (!templates) return
+
+    const labelPrefix = pollSettings ? 'settings' : 'monitor'
+    const frames: { label: string; bytes: number[] }[] = []
+    if (templates.query1) {
+      const f = buildModbusRtuFrame(templates.query1, serialSession.slaveId)
+      if (f) frames.push({ label: `${labelPrefix}/q1`, bytes: [...f] })
+    }
+    if (templates.query2) {
+      const f = buildModbusRtuFrame(templates.query2, serialSession.slaveId)
+      if (f) frames.push({ label: `${labelPrefix}/q2`, bytes: [...f] })
+    }
+    if (frames.length === 0) return
+
+    let step = 0
+    let pollId: number | undefined
+    let cancelled = false
+
+    const pushLine = (text: string) => {
+      serialLineKey.current += 1
+      const id = serialLineKey.current
+      setSerialLines((prev) => {
+        const next = [...prev, `${id}\t${text}`]
+        return next.length > 500 ? next.slice(-500) : next
+      })
+    }
+
+    const tick = async () => {
+      const { label, bytes } = frames[step % frames.length]
+      step += 1
+      const hex = bytes.map((b) => b.toString(16).padStart(2, '0')).join(' ')
+      pushLine(`[TX ${label}] ${hex}`)
+      const res = await window.icms.writeSerialBytes(bytes)
+      if (!res.ok) pushLine(`[TX ${label} failed] ${res.error}`)
+    }
+
+    const start = window.setTimeout(() => {
+      if (cancelled) return
+      void tick()
+      pollId = window.setInterval(() => void tick(), MONITOR_POLL_MS)
+    }, 150)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(start)
+      if (pollId !== undefined) window.clearInterval(pollId)
+    }
+  }, [serialSession, location.pathname])
 
   return (
     <div className="app-layout">
@@ -378,6 +467,16 @@ function AppLayout() {
             ) : null}
           </div>
           <div className="content-toolbar-end">
+            <time
+              className="content-toolbar-datetime"
+              dateTime={toolbarNow.toISOString()}
+              title={toolbarNow.toLocaleString()}
+            >
+              {toolbarNow.toLocaleString(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'medium',
+              })}
+            </time>
             <button
               type="button"
               className={serialSession ? 'connect-button connect-button--connected' : 'connect-button'}
@@ -411,43 +510,21 @@ function AppLayout() {
           </div>
         </header>
         {displayView === 'data' && serialSession ? (
-          <section className="serial-readout" aria-label="Serial connection">
-            <div className="serial-readout-bar">
-              <span className="serial-readout-dot" aria-hidden="true" />
-              <p className="serial-readout-summary">
-                Port <strong>{serialSession.path}</strong>
-                <span className="serial-readout-sep" aria-hidden="true" />
-                {serialSession.baudRate} baud
-                <span className="serial-readout-sep" aria-hidden="true" />
-                Slave ID <strong>{serialSession.slaveId || '—'}</strong>
-              </p>
-            </div>
-            <div className="serial-readout-log" role="log" aria-live="polite">
-              {serialLines.length === 0 ? (
-                <p className="serial-readout-placeholder">Reading port — waiting for incoming bytes…</p>
-              ) : (
-                serialLines.map((row) => {
-                  const tab = row.indexOf('\t')
-                  const key = tab >= 0 ? row.slice(0, tab) : row
-                  const text = tab >= 0 ? row.slice(tab + 1) : row
-                  return (
-                    <div key={key} className="serial-readout-line">
-                      {text}
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          </section>
+          <>
+          </>
         ) : null}
-        {displayView === 'traffic' ? (
-          <Traffic
-            connected={Boolean(serialSession)}
-            path={serialSession?.path ?? ''}
-            baudRate={serialSession?.baudRate ?? 0}
-            slaveId={serialSession?.slaveId ?? ''}
-            lines={serialLines}
-          />
+        {displayView === 'traffic' &&
+        location.pathname !== '/settings' &&
+        location.pathname !== '/dashboard' ? (
+          <div className="app-main-traffic">
+            <Traffic
+              connected={Boolean(serialSession)}
+              path={serialSession?.path ?? ''}
+              baudRate={serialSession?.baudRate ?? 0}
+              slaveId={serialSession?.slaveId ?? ''}
+              lines={serialLines}
+            />
+          </div>
         ) : null}
         <ConnectModal
           open={connectOpen}
@@ -462,8 +539,25 @@ function AppLayout() {
           view={displayView}
           serialConnected={Boolean(serialSession)}
           serialLineCount={serialLines.length}
+          serialLines={serialLines}
+          serialPath={serialSession?.path ?? ''}
+          serialBaudRate={serialSession?.baudRate ?? 0}
+          serialSlaveId={serialSession?.slaveId ?? ''}
         >
-          <main className="content">
+          <main
+            className={`content${
+              displayView === 'traffic' &&
+              location.pathname !== '/settings' &&
+              location.pathname !== '/dashboard'
+                ? ' content--under-traffic'
+                : ''
+            }${
+              displayView === 'traffic' &&
+              (location.pathname === '/settings' || location.pathname === '/dashboard')
+                ? ' content--traffic-inline'
+                : ''
+            }`}
+          >
             <Outlet />
           </main>
         </DisplayViewProvider>

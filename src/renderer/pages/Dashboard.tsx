@@ -1,64 +1,33 @@
-import MonitorTrafficOverview from './MonitorTrafficOverview'
+import { useMemo } from 'react'
+import { ParamSectionCard } from '../components/ParamSectionCard'
+import Traffic from './Traffic'
 import { useDisplayView } from '../context/DisplayViewContext'
 import { STORAGE_FIRMWARE, STORAGE_MODEL } from '../utils/deviceStorage'
+import { computeMonitorLiveValues } from '../utils/monitorLiveValues'
 import {
   DEFAULT_SECTION_LAYOUT,
   getMonitorDashboardConfig,
   PARAM_MATRIX_RENDER_ORDER,
   PARAM_MATRIX_SLOT,
-  PARAM_SECTION_TITLES,
-  splitParamEntriesForLayout,
-  type ParamGroupKey,
-  type SectionGridLayout,
 } from '../utils/monitorParamsFromProduct'
 
-function formatUnit(raw: unknown): string {
-  if (raw === null || raw === undefined) return '—'
-  const t = String(raw).trim()
-  return t.length > 0 ? t : ''
-}
-
-function formatDefault(raw: unknown): string {
-  if (raw === null || raw === undefined) return '—'
-  const t = String(raw).trim()
-  return t.length > 0 ? t : '—'
-}
-
-function ParamSectionCard({
-  groupKey,
-  block,
-  layout,
-}: {
-  groupKey: ParamGroupKey
-  block: Record<string, unknown[]>
-  layout: SectionGridLayout
-}) {
-  const columnChunks = splitParamEntriesForLayout(Object.entries(block), layout)
-
-  return (
-    <div className="card dashboard-param-matrix-cell">
-      <h3>{PARAM_SECTION_TITLES[groupKey]}</h3>
-      <div className="dashboard-param-section-cols">
-        {columnChunks.map((colEntries, colIndex) => (
-          <ul key={colIndex} className="dashboard-param-list dashboard-param-col">
-            {colEntries.map(([name, spec]) => (
-              <li key={name} className="dashboard-param-row">
-                <span className="dashboard-param-name">{name}</span>
-                <span className="dashboard-param-default">{formatDefault(spec.length > 1 ? spec[1] : undefined)}</span>
-                <span className="dashboard-param-unit">{formatUnit(spec[0])}</span>
-              </li>
-            ))}
-          </ul>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 export default function Dashboard() {
-  const { view } = useDisplayView()
+  const { view, serialConnected, serialLines, serialPath, serialBaudRate, serialSlaveId } = useDisplayView()
   if (view === 'traffic') {
-    return <MonitorTrafficOverview />
+    return (
+      <>
+        <h1 className="page-title">Dashboard</h1>
+        <div className="traffic-log-embed">
+          <Traffic
+            connected={serialConnected}
+            path={serialPath}
+            baudRate={serialBaudRate}
+            slaveId={serialSlaveId}
+            lines={serialLines}
+          />
+        </div>
+      </>
+    )
   }
 
   const dashboardConfig = getMonitorDashboardConfig(
@@ -67,6 +36,13 @@ export default function Dashboard() {
   )
   const groups = dashboardConfig?.groups ?? null
   const sectionLayout = dashboardConfig?.sectionLayout ?? {}
+  const liveByParamName = useMemo(() => {
+    const cfg = getMonitorDashboardConfig(
+      localStorage.getItem(STORAGE_MODEL),
+      localStorage.getItem(STORAGE_FIRMWARE),
+    )
+    return computeMonitorLiveValues(serialLines, cfg)
+  }, [serialLines])
 
   return (
     <>
@@ -95,6 +71,7 @@ export default function Dashboard() {
                     groupKey={groupKey}
                     block={block}
                     layout={sectionLayout[groupKey] ?? DEFAULT_SECTION_LAYOUT}
+                    liveByParamName={liveByParamName}
                   />
                 ) : null}
               </div>

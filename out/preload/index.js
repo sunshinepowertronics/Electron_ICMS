@@ -12,6 +12,7 @@ electron.contextBridge.exposeInMainWorld("icms", {
   listSerialPorts: () => electron.ipcRenderer.invoke("serial:list-ports"),
   openSerialPort: (opts) => electron.ipcRenderer.invoke("serial:open", opts),
   closeSerialPort: () => electron.ipcRenderer.invoke("serial:close"),
+  writeSerialBytes: (bytes) => electron.ipcRenderer.invoke("serial:write", bytes),
   getSerialStatus: () => electron.ipcRenderer.invoke("serial:status"),
   onSerialData: (callback) => {
     const listener = (_, payload) => callback(payload);

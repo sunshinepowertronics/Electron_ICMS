@@ -2,8 +2,20 @@
 const electron = require("electron");
 const serialport = require("serialport");
 const path = require("path");
+function crc16Modbus(data) {
+  let crc = 65535;
+  for (let i = 0; i < data.length; i++) {
+    crc ^= data[i];
+    for (let j = 0; j < 8; j++) {
+      if (crc & 1) crc = crc >>> 1 ^ 40961;
+      else crc >>>= 1;
+    }
+  }
+  return crc & 65535;
+}
 let activeSerialPort = null;
 let serialSession = null;
+let serialModbusRxBuffer = [];
 function broadcastSerial(channel, payload) {
   for (const win of electron.BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) win.webContents.send(channel, payload);
@@ -16,6 +28,7 @@ function broadcastDisplayView(view) {
 }
 function closeActiveSerial() {
   serialSession = null;
+  serialModbusRxBuffer = [];
   if (!activeSerialPort) return;
   const p = activeSerialPort;
   activeSerialPort = null;
@@ -148,6 +161,69 @@ function serialPortLabel(p) {
   }
   return path2;
 }
+function formatSerialBufferAsHex(buf) {
+  return [...buf].map((b) => b.toString(16).padStart(2, "0")).join(" ");
+}
+function publishSerialReadToRenderers(buf) {
+  broadcastSerial("serial:data", {
+    hex: formatSerialBufferAsHex(buf),
+    length: buf.length,
+    bytes: [...buf]
+  });
+}
+function modbusRtuCrcOk(u) {
+  if (u.length < 4) return false;
+  const c = crc16Modbus(u.subarray(0, -2));
+  return (c & 255) === u[u.length - 2] && (c >> 8 & 255) === u[u.length - 1];
+}
+function modbusRtuResponseByteLength(u, off) {
+  if (u.length - off < 2) return null;
+  const func = u[off + 1];
+  if (func & 128) return 5;
+  if (func === 1 || func === 2 || func === 3 || func === 4) {
+    if (u.length - off < 3) return null;
+    const bc = u[off + 2];
+    if (bc < 0 || bc > 250) return null;
+    return 5 + bc;
+  }
+  if (func === 5 || func === 6 || func === 15 || func === 16) return 8;
+  return null;
+}
+const SERIAL_RX_BUFFER_CAP = 6144;
+function ingestRawSerialAndEmitModbusFrames(chunk) {
+  for (let i = 0; i < chunk.length; i++) serialModbusRxBuffer.push(chunk[i]);
+  if (serialModbusRxBuffer.length > SERIAL_RX_BUFFER_CAP) {
+    serialModbusRxBuffer.splice(0, serialModbusRxBuffer.length - 2048);
+  }
+  let guard = 0;
+  while (serialModbusRxBuffer.length >= 5 && guard++ < 8e3) {
+    const u = new Uint8Array(serialModbusRxBuffer);
+    const frameLen = modbusRtuResponseByteLength(u, 0);
+    if (frameLen === null) {
+      serialModbusRxBuffer.shift();
+      continue;
+    }
+    if (serialModbusRxBuffer.length < frameLen) break;
+    const frame = Buffer.from(serialModbusRxBuffer.slice(0, frameLen));
+    if (!modbusRtuCrcOk(new Uint8Array(frame))) {
+      serialModbusRxBuffer.shift();
+      continue;
+    }
+    serialModbusRxBuffer.splice(0, frameLen);
+    publishSerialReadToRenderers(frame);
+  }
+}
+function attachSerialPortModbusDeframer(port) {
+  serialModbusRxBuffer = [];
+  port.on("data", (raw) => {
+    ingestRawSerialAndEmitModbusFrames(raw);
+  });
+}
+function attachSerialPortErrorListener(port) {
+  port.on("error", (err) => {
+    broadcastSerial("serial:error", err.message);
+  });
+}
 electron.ipcMain.handle("serial:list-ports", async () => {
   try {
     const ports = await serialport.SerialPort.list();
@@ -188,18 +264,53 @@ electron.ipcMain.handle(
         port.off("error", fail);
         activeSerialPort = port;
         serialSession = { path: path2, baudRate, slaveId };
-        port.on("data", (buf) => {
-          const hex = [...buf].map((b) => b.toString(16).padStart(2, "0")).join(" ");
-          broadcastSerial("serial:data", { hex, length: buf.length });
-        });
-        port.on("error", (err) => {
-          broadcastSerial("serial:error", err.message);
-        });
+        attachSerialPortModbusDeframer(port);
+        attachSerialPortErrorListener(port);
         resolve({ ok: true, path: path2, baudRate, slaveId });
       });
     });
   }
 );
+function normalizeSerialWritePayload(bytes) {
+  if (Array.isArray(bytes) && bytes.length > 0) {
+    return bytes.map((b) => {
+      const n = typeof b === "number" ? b : Number(b);
+      return Number.isFinite(n) ? Math.max(0, Math.min(255, Math.round(n))) : 0;
+    });
+  }
+  if (bytes !== null && typeof bytes === "object" && !Array.isArray(bytes)) {
+    const o = bytes;
+    const keys = Object.keys(o).filter((k) => /^\d+$/.test(k)).sort((a, b) => Number(a) - Number(b));
+    if (keys.length === 0) return null;
+    return keys.map((k) => {
+      const n = Number(o[k]);
+      return Number.isFinite(n) ? Math.max(0, Math.min(255, Math.round(n))) : 0;
+    });
+  }
+  return null;
+}
+electron.ipcMain.handle("serial:write", async (_e, bytes) => {
+  if (!activeSerialPort?.isOpen) return { ok: false, error: "Serial port not open" };
+  const normalized = normalizeSerialWritePayload(bytes);
+  if (!normalized || normalized.length === 0) return { ok: false, error: "No bytes to write" };
+  const buf = Buffer.from(normalized);
+  const port = activeSerialPort;
+  try {
+    await new Promise((resolve, reject) => {
+      port.write(buf, (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        port.drain((derr) => derr ? reject(derr) : resolve());
+      });
+    });
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: msg };
+  }
+});
 electron.ipcMain.handle("serial:close", async () => {
   closeActiveSerial();
   return { ok: true };

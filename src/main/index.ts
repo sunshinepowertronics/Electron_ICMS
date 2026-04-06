@@ -2,9 +2,11 @@ import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
 import { SerialPort } from 'serialport'
 import { join } from 'path'
 import type { MenuItemConstructorOptions } from 'electron'
+import { crc16Modbus } from '../shared/modbusRtu'
 
 let activeSerialPort: SerialPort | null = null
 let serialSession: { path: string; baudRate: number; slaveId: string } | null = null
+let serialModbusRxBuffer: number[] = []
 
 function broadcastSerial(channel: string, payload: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -20,6 +22,7 @@ function broadcastDisplayView(view: 'data' | 'traffic'): void {
 
 function closeActiveSerial(): void {
   serialSession = null
+  serialModbusRxBuffer = []
   if (!activeSerialPort) return
   const p = activeSerialPort
   activeSerialPort = null
@@ -169,6 +172,78 @@ function serialPortLabel(p: {
   return path
 }
 
+function formatSerialBufferAsHex(buf: Buffer): string {
+  return [...buf].map((b) => b.toString(16).padStart(2, '0')).join(' ')
+}
+
+function publishSerialReadToRenderers(buf: Buffer): void {
+  broadcastSerial('serial:data', {
+    hex: formatSerialBufferAsHex(buf),
+    length: buf.length,
+    bytes: [...buf],
+  })
+}
+
+function modbusRtuCrcOk(u: Uint8Array): boolean {
+  if (u.length < 4) return false
+  const c = crc16Modbus(u.subarray(0, -2))
+  return (c & 0xff) === u[u.length - 2] && ((c >> 8) & 0xff) === u[u.length - 1]
+}
+
+/** Total RTU frame length from first byte at offset; null if not a recognized response shape yet. */
+function modbusRtuResponseByteLength(u: Uint8Array, off: number): number | null {
+  if (u.length - off < 2) return null
+  const func = u[off + 1]
+  if (func & 0x80) return 5
+  if (func === 1 || func === 2 || func === 3 || func === 4) {
+    if (u.length - off < 3) return null
+    const bc = u[off + 2]
+    if (bc < 0 || bc > 250) return null
+    return 5 + bc
+  }
+  if (func === 5 || func === 6 || func === 15 || func === 16) return 8
+  return null
+}
+
+const SERIAL_RX_BUFFER_CAP = 6144
+
+function ingestRawSerialAndEmitModbusFrames(chunk: Buffer): void {
+  for (let i = 0; i < chunk.length; i++) serialModbusRxBuffer.push(chunk[i])
+  if (serialModbusRxBuffer.length > SERIAL_RX_BUFFER_CAP) {
+    serialModbusRxBuffer.splice(0, serialModbusRxBuffer.length - 2048)
+  }
+  let guard = 0
+  while (serialModbusRxBuffer.length >= 5 && guard++ < 8000) {
+    const u = new Uint8Array(serialModbusRxBuffer)
+    const frameLen = modbusRtuResponseByteLength(u, 0)
+    if (frameLen === null) {
+      serialModbusRxBuffer.shift()
+      continue
+    }
+    if (serialModbusRxBuffer.length < frameLen) break
+    const frame = Buffer.from(serialModbusRxBuffer.slice(0, frameLen))
+    if (!modbusRtuCrcOk(new Uint8Array(frame))) {
+      serialModbusRxBuffer.shift()
+      continue
+    }
+    serialModbusRxBuffer.splice(0, frameLen)
+    publishSerialReadToRenderers(frame)
+  }
+}
+
+function attachSerialPortModbusDeframer(port: SerialPort): void {
+  serialModbusRxBuffer = []
+  port.on('data', (raw: Buffer) => {
+    ingestRawSerialAndEmitModbusFrames(raw)
+  })
+}
+
+function attachSerialPortErrorListener(port: SerialPort): void {
+  port.on('error', (err) => {
+    broadcastSerial('serial:error', err.message)
+  })
+}
+
 ipcMain.handle('serial:list-ports', async () => {
   try {
     const ports = await SerialPort.list()
@@ -219,20 +294,57 @@ ipcMain.handle(
         port.off('error', fail)
         activeSerialPort = port
         serialSession = { path, baudRate, slaveId }
-        port.on('data', (buf) => {
-          const hex = [...buf]
-            .map((b) => b.toString(16).padStart(2, '0'))
-            .join(' ')
-          broadcastSerial('serial:data', { hex, length: buf.length })
-        })
-        port.on('error', (err) => {
-          broadcastSerial('serial:error', err.message)
-        })
+        attachSerialPortModbusDeframer(port)
+        attachSerialPortErrorListener(port)
         resolve({ ok: true as const, path, baudRate, slaveId })
       })
     })
   },
 )
+
+function normalizeSerialWritePayload(bytes: unknown): number[] | null {
+  if (Array.isArray(bytes) && bytes.length > 0) {
+    return bytes.map((b) => {
+      const n = typeof b === 'number' ? b : Number(b)
+      return Number.isFinite(n) ? Math.max(0, Math.min(255, Math.round(n))) : 0
+    })
+  }
+  if (bytes !== null && typeof bytes === 'object' && !Array.isArray(bytes)) {
+    const o = bytes as Record<string, unknown>
+    const keys = Object.keys(o)
+      .filter((k) => /^\d+$/.test(k))
+      .sort((a, b) => Number(a) - Number(b))
+    if (keys.length === 0) return null
+    return keys.map((k) => {
+      const n = Number(o[k])
+      return Number.isFinite(n) ? Math.max(0, Math.min(255, Math.round(n))) : 0
+    })
+  }
+  return null
+}
+
+ipcMain.handle('serial:write', async (_e, bytes: unknown): Promise<{ ok: true } | { ok: false; error: string }> => {
+  if (!activeSerialPort?.isOpen) return { ok: false, error: 'Serial port not open' }
+  const normalized = normalizeSerialWritePayload(bytes)
+  if (!normalized || normalized.length === 0) return { ok: false, error: 'No bytes to write' }
+  const buf = Buffer.from(normalized)
+  const port = activeSerialPort
+  try {
+    await new Promise<void>((resolve, reject) => {
+      port.write(buf, (err) => {
+        if (err) {
+          reject(err)
+          return
+        }
+        port.drain((derr) => (derr ? reject(derr) : resolve()))
+      })
+    })
+    return { ok: true as const }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return { ok: false, error: msg }
+  }
+})
 
 ipcMain.handle('serial:close', async () => {
   closeActiveSerial()

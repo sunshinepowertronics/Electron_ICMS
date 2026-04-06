@@ -6,6 +6,10 @@ export type DisplayViewContextValue = {
   view: DisplayView
   serialConnected: boolean
   serialLineCount: number
+  serialLines: string[]
+  serialPath: string
+  serialBaudRate: number
+  serialSlaveId: string
 }
 
 const DisplayViewContext = createContext<DisplayViewContextValue | null>(null)
@@ -15,14 +19,32 @@ export function DisplayViewProvider({
   view,
   serialConnected,
   serialLineCount,
+  serialLines,
+  serialPath,
+  serialBaudRate,
+  serialSlaveId,
 }: {
   children: ReactNode
   view: DisplayView
   serialConnected: boolean
   serialLineCount: number
+  serialLines: string[]
+  serialPath: string
+  serialBaudRate: number
+  serialSlaveId: string
 }) {
   return (
-    <DisplayViewContext.Provider value={{ view, serialConnected, serialLineCount }}>
+    <DisplayViewContext.Provider
+      value={{
+        view,
+        serialConnected,
+        serialLineCount,
+        serialLines,
+        serialPath,
+        serialBaudRate,
+        serialSlaveId,
+      }}
+    >
       {children}
     </DisplayViewContext.Provider>
   )
