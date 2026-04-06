@@ -8,11 +8,14 @@ import Logs from './pages/Logs'
 import Profile from './pages/Profile'
 import Auth from './pages/Auth'
 import DefaultCard from './pages/DefaultCard'
+import Traffic from './pages/Traffic'
 import Help from './pages/Help'
 import SectionPage from './pages/SectionPage'
 import { MdClose, MdUsb, MdUsbOff } from 'react-icons/md'
 import { SidebarNavIcon } from './components/SidebarNavIcon'
 import { getProductNavFromStorage, tailNavItems } from './utils/productNav'
+import { DisplayViewProvider } from './context/DisplayViewContext'
+import { STORAGE_FIRMWARE, STORAGE_MODEL } from './utils/deviceStorage'
 type SerialPortListItem = { path: string; label: string }
 
 const BAUD_RATES = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600] as const
@@ -274,6 +277,9 @@ function SidebarLogoutButton({ label }: { label: string }) {
 }
 
 function AppLayout() {
+  const storedModel = localStorage.getItem(STORAGE_MODEL)?.trim() ?? ''
+  const storedFirmware = localStorage.getItem(STORAGE_FIRMWARE)?.trim() ?? ''
+
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [connectOpen, setConnectOpen] = useState(false)
   const [serialSession, setSerialSession] = useState<{
@@ -283,7 +289,12 @@ function AppLayout() {
   } | null>(null)
   const [serialLines, setSerialLines] = useState<string[]>([])
   const serialLineKey = useRef(0)
+  const [displayView, setDisplayView] = useState<'data' | 'traffic'>('data')
   const productNav = getProductNavFromStorage()
+
+  useEffect(() => {
+    return window.icms.onDisplayView((view) => setDisplayView(view))
+  }, [])
 
   useEffect(() => {
     const offData = window.icms.onSerialData(({ hex }) => {
@@ -329,54 +340,77 @@ function AppLayout() {
       </aside>
       <div className="app-main">
         <header className="content-toolbar">
-          <button
-            type="button"
-            className="sidebar-toggle"
-            aria-expanded={sidebarOpen}
-            aria-controls="app-sidebar-nav app-sidebar-footer"
-            aria-label={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
-            onClick={() => setSidebarOpen((open) => !open)}
-          >
-            <svg className="sidebar-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                fill="currentColor"
-                d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"
-              />
-            </svg>
-          </button>
-          <span className="content-toolbar-spacer" aria-hidden="true" />
-          <button
-            type="button"
-            className={serialSession ? 'connect-button connect-button--connected' : 'connect-button'}
-            aria-label={
-              serialSession
-                ? `Disconnect serial — ${serialSession.path}`
-                : 'Connect serial device'
-            }
-            title={serialSession ? `Disconnect (${serialSession.path})` : 'Connect'}
-            onClick={async () => {
-              if (serialSession) {
-                await window.icms.closeSerialPort()
-                setSerialSession(null)
-                setSerialLines([])
-                return
+          <div className="content-toolbar-start">
+            <button
+              type="button"
+              className="sidebar-toggle"
+              aria-expanded={sidebarOpen}
+              aria-controls="app-sidebar-nav app-sidebar-footer"
+              aria-label={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
+              onClick={() => setSidebarOpen((open) => !open)}
+            >
+              <svg className="sidebar-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  fill="currentColor"
+                  d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"
+                />
+              </svg>
+            </button>
+          </div>
+          <div className="content-toolbar-center">
+            {storedModel || storedFirmware ? (
+              <p
+                className="content-toolbar-device"
+                title={[storedModel, storedFirmware].filter(Boolean).join(' · ')}
+              >
+                {storedModel ? (
+                  <span className="content-toolbar-device-text">{storedModel}</span>
+                ) : null}
+                {storedModel && storedFirmware ? (
+                  <span className="content-toolbar-device-sep" aria-hidden="true">
+                    ·
+                  </span>
+                ) : null}
+                {storedFirmware ? (
+                  <span className="content-toolbar-device-text">v{storedFirmware}</span>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
+          <div className="content-toolbar-end">
+            <button
+              type="button"
+              className={serialSession ? 'connect-button connect-button--connected' : 'connect-button'}
+              aria-label={
+                serialSession
+                  ? `Disconnect serial — ${serialSession.path}`
+                  : 'Connect serial device'
               }
-              setConnectOpen(true)
-            }}
-          >
-            {serialSession ? (
-              <>
-                <MdUsbOff className="connect-usb-icon" aria-hidden />
-                <span className="connect-button-port" title={serialSession.path}>
-                  {serialSession.path}
-                </span>
-              </>
-            ) : (
-              <MdUsb className="connect-usb-icon" aria-hidden />
-            )}
-          </button>
+              title={serialSession ? `Disconnect (${serialSession.path})` : 'Connect'}
+              onClick={async () => {
+                if (serialSession) {
+                  await window.icms.closeSerialPort()
+                  setSerialSession(null)
+                  setSerialLines([])
+                  return
+                }
+                setConnectOpen(true)
+              }}
+            >
+              {serialSession ? (
+                <>
+                  <MdUsbOff className="connect-usb-icon" aria-hidden />
+                  <span className="connect-button-port" title={serialSession.path}>
+                    {serialSession.path}
+                  </span>
+                </>
+              ) : (
+                <MdUsb className="connect-usb-icon" aria-hidden />
+              )}
+            </button>
+          </div>
         </header>
-        {serialSession ? (
+        {displayView === 'data' && serialSession ? (
           <section className="serial-readout" aria-label="Serial connection">
             <div className="serial-readout-bar">
               <span className="serial-readout-dot" aria-hidden="true" />
@@ -406,6 +440,15 @@ function AppLayout() {
             </div>
           </section>
         ) : null}
+        {displayView === 'traffic' ? (
+          <Traffic
+            connected={Boolean(serialSession)}
+            path={serialSession?.path ?? ''}
+            baudRate={serialSession?.baudRate ?? 0}
+            slaveId={serialSession?.slaveId ?? ''}
+            lines={serialLines}
+          />
+        ) : null}
         <ConnectModal
           open={connectOpen}
           onClose={() => setConnectOpen(false)}
@@ -415,9 +458,15 @@ function AppLayout() {
             setSerialSession(info)
           }}
         />
-        <main className="content">
-          <Outlet />
-        </main>
+        <DisplayViewProvider
+          view={displayView}
+          serialConnected={Boolean(serialSession)}
+          serialLineCount={serialLines.length}
+        >
+          <main className="content">
+            <Outlet />
+          </main>
+        </DisplayViewProvider>
       </div>
     </div>
   )

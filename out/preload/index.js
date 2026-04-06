@@ -2,18 +2,11 @@
 const electron = require("electron");
 electron.contextBridge.exposeInMainWorld("icms", {
   platform: process.platform,
-  onShowDataVisible: (callback) => {
-    const listener = (_, visible) => callback(visible);
-    electron.ipcRenderer.on("display-options:show-data", listener);
+  onDisplayView: (callback) => {
+    const listener = (_, view) => callback(view);
+    electron.ipcRenderer.on("display-options:view", listener);
     return () => {
-      electron.ipcRenderer.removeListener("display-options:show-data", listener);
-    };
-  },
-  onShowTrafficVisible: (callback) => {
-    const listener = (_, visible) => callback(visible);
-    electron.ipcRenderer.on("display-options:show-traffic", listener);
-    return () => {
-      electron.ipcRenderer.removeListener("display-options:show-traffic", listener);
+      electron.ipcRenderer.removeListener("display-options:view", listener);
     };
   },
   listSerialPorts: () => electron.ipcRenderer.invoke("serial:list-ports"),

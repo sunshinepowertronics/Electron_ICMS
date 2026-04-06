@@ -2,18 +2,11 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('icms', {
   platform: process.platform,
-  onShowDataVisible: (callback: (visible: boolean) => void) => {
-    const listener = (_: Electron.IpcRendererEvent, visible: boolean) => callback(visible)
-    ipcRenderer.on('display-options:show-data', listener)
+  onDisplayView: (callback: (view: 'data' | 'traffic') => void) => {
+    const listener = (_: Electron.IpcRendererEvent, view: 'data' | 'traffic') => callback(view)
+    ipcRenderer.on('display-options:view', listener)
     return () => {
-      ipcRenderer.removeListener('display-options:show-data', listener)
-    }
-  },
-  onShowTrafficVisible: (callback: (visible: boolean) => void) => {
-    const listener = (_: Electron.IpcRendererEvent, visible: boolean) => callback(visible)
-    ipcRenderer.on('display-options:show-traffic', listener)
-    return () => {
-      ipcRenderer.removeListener('display-options:show-traffic', listener)
+      ipcRenderer.removeListener('display-options:view', listener)
     }
   },
   listSerialPorts: () => ipcRenderer.invoke('serial:list-ports'),

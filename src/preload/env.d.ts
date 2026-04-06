@@ -11,10 +11,11 @@ export type SerialStatus =
   | { connected: false }
   | { connected: true; path: string; baudRate: number; slaveId: string }
 
+export type DisplayView = 'data' | 'traffic'
+
 export interface ICMSBridge {
   platform: string
-  onShowDataVisible: (callback: (visible: boolean) => void) => () => void
-  onShowTrafficVisible: (callback: (visible: boolean) => void) => () => void
+  onDisplayView: (callback: (view: DisplayView) => void) => () => void
   listSerialPorts: () => Promise<SerialPortListItem[]>
   openSerialPort: (opts: { path: string; baudRate: number; slaveId: string }) => Promise<SerialOpenResult>
   closeSerialPort: () => Promise<{ ok: true }>

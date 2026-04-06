@@ -9,6 +9,11 @@ function broadcastSerial(channel, payload) {
     if (!win.isDestroyed()) win.webContents.send(channel, payload);
   }
 }
+function broadcastDisplayView(view) {
+  for (const win of electron.BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send("display-options:view", view);
+  }
+}
 function closeActiveSerial() {
   serialSession = null;
   if (!activeSerialPort) return;
@@ -70,20 +75,18 @@ function createApplicationMenu() {
           submenu: [
             {
               label: "Show Data",
-              type: "checkbox",
+              type: "radio",
               checked: true,
-              click: (item, focusedWindow) => {
-                const win = focusedWindow ?? electron.BrowserWindow.getFocusedWindow();
-                win?.webContents.send("display-options:show-data", item.checked);
+              click: () => {
+                broadcastDisplayView("data");
               }
             },
             {
               label: "Show Traffic",
-              type: "checkbox",
+              type: "radio",
               checked: false,
-              click: (item, focusedWindow) => {
-                const win = focusedWindow ?? electron.BrowserWindow.getFocusedWindow();
-                win?.webContents.send("display-options:show-traffic", item.checked);
+              click: () => {
+                broadcastDisplayView("traffic");
               }
             }
           ]

@@ -1,4 +1,12 @@
+import SettingsTrafficOverview from './SettingsTrafficOverview'
+import { useDisplayView } from '../context/DisplayViewContext'
+
 export default function Settings() {
+  const { view } = useDisplayView()
+  if (view === 'traffic') {
+    return <SettingsTrafficOverview />
+  }
+
   const platform = typeof window !== 'undefined' && window.icms?.platform ? window.icms.platform : 'unknown'
   return (
     <>

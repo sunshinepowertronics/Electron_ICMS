@@ -12,6 +12,12 @@ function broadcastSerial(channel: string, payload: unknown): void {
   }
 }
 
+function broadcastDisplayView(view: 'data' | 'traffic'): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('display-options:view', view)
+  }
+}
+
 function closeActiveSerial(): void {
   serialSession = null
   if (!activeSerialPort) return
@@ -80,22 +86,18 @@ function createApplicationMenu(): void {
           submenu: [
             {
               label: 'Show Data',
-              type: 'checkbox',
+              type: 'radio',
               checked: true,
-              click: (item, focusedWindow) => {
-                const win =
-                  (focusedWindow as BrowserWindow | undefined) ?? BrowserWindow.getFocusedWindow()
-                win?.webContents.send('display-options:show-data', item.checked)
+              click: () => {
+                broadcastDisplayView('data')
               },
             },
             {
               label: 'Show Traffic',
-              type: 'checkbox',
+              type: 'radio',
               checked: false,
-              click: (item, focusedWindow) => {
-                const win =
-                  (focusedWindow as BrowserWindow | undefined) ?? BrowserWindow.getFocusedWindow()
-                win?.webContents.send('display-options:show-traffic', item.checked)
+              click: () => {
+                broadcastDisplayView('traffic')
               },
             },
           ],
