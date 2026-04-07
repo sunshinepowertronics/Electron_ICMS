@@ -428,6 +428,36 @@ function applyNumberOfFansOverrides(out: Record<string, MonitorLiveCell>, numFan
   }
 }
 
+function isFailStatus(out: Record<string, MonitorLiveCell>, keys: string[]): boolean {
+  for (const k of keys) {
+    const v = out[k]?.value
+    if (typeof v === 'string' && v.trim().toUpperCase() === 'FAIL') return true
+  }
+  return false
+}
+
+function forceSensorFailDisplay(out: Record<string, MonitorLiveCell>): void {
+  const failCell: MonitorLiveCell = { value: '---', color: '#f87171' }
+  const t1Fail = isFailStatus(out, ['T1 Sensor', 'T1 Sensor Status'])
+  const t2Fail = isFailStatus(out, ['T2 Sensor', 'T2 Sensor Status'])
+
+  if (t1Fail) {
+    for (const key of ['Temp(Cab)', 'T1(Cab)']) {
+      if (key in out) out[key] = { ...failCell }
+    }
+  }
+  if (t2Fail) {
+    for (const key of ['Temp(Amb)', 'T2(Amb)']) {
+      if (key in out) out[key] = { ...failCell }
+    }
+  }
+  if (t1Fail || t2Fail) {
+    for (const key of ['Δt', 'Δt ', 'Delta T']) {
+      if (key in out) out[key] = { ...failCell }
+    }
+  }
+}
+
 function applyFanStatusBlock(
   block: Record<string, unknown[]>,
   coils: Uint8Array,
@@ -644,6 +674,7 @@ export function buildModbusLiveDisplayMap(
   }
 
   applyNumberOfFansOverrides(out, parseNumberOfFans(config, snap))
+  if (!settingsAlarmBits) forceSensorFailDisplay(out)
 
   return out
 }
