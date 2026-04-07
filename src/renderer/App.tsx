@@ -20,12 +20,18 @@ import DefaultCard from './pages/DefaultCard'
 import Traffic from './pages/Traffic'
 import Help from './pages/Help'
 import SectionPage from './pages/SectionPage'
+import { DateTimeSyncDialog } from './components/DateTimeSyncDialog'
 import { MdClose, MdUsb, MdUsbOff } from 'react-icons/md'
 import { SidebarNavIcon } from './components/SidebarNavIcon'
 import { getProductNavFromStorage, tailNavItems } from './utils/productNav'
 import { DisplayViewProvider } from './context/DisplayViewContext'
 import { STORAGE_FIRMWARE, STORAGE_MODEL } from './utils/deviceStorage'
-import { getMonitorQueryTemplates, getSettingsQueryTemplates } from './utils/monitorParamsFromProduct'
+import {
+  getMonitorDashboardConfig,
+  getMonitorQueryTemplates,
+  getSettingsDashboardConfig,
+  getSettingsQueryTemplates,
+} from './utils/monitorParamsFromProduct'
 import { buildModbusRtuFrame } from '../shared/modbusRtu'
 
 type SerialPortListItem = { path: string; label: string }
@@ -303,6 +309,7 @@ function AppLayout() {
     slaveId: string
   } | null>(null)
   const [serialLines, setSerialLines] = useState<string[]>([])
+  const [lastSerialRxAt, setLastSerialRxAt] = useState<number | null>(null)
   const serialLineKey = useRef(0)
   const settingsPollHoldRef = useRef(false)
   const [settingsParamEditBlocksPoll, setSettingsParamEditBlocksPoll] = useState(false)
@@ -316,7 +323,29 @@ function AppLayout() {
   }, [])
   const [displayView, setDisplayView] = useState<'data' | 'traffic'>('data')
   const [toolbarNow, setToolbarNow] = useState(() => new Date())
+  const [dateTimeSyncOpen, setDateTimeSyncOpen] = useState(false)
   const productNav = getProductNavFromStorage()
+  const clearSerialTraffic = useCallback(() => {
+    setSerialLines([])
+    serialLineKey.current = 0
+  }, [])
+  const commHealthy = Boolean(serialSession) && lastSerialRxAt !== null && Date.now() - lastSerialRxAt <= 4000
+  const modelUpper = storedModel.trim().toUpperCase()
+  const settingsConfig = getSettingsDashboardConfig(
+    localStorage.getItem(STORAGE_MODEL),
+    localStorage.getItem(STORAGE_FIRMWARE),
+  )
+  const monitorConfig = getMonitorDashboardConfig(
+    localStorage.getItem(STORAGE_MODEL),
+    localStorage.getItem(STORAGE_FIRMWARE),
+  )
+  const controllerDateSpec =
+    settingsConfig?.groups?.version_params?.["Controller's Date"] ??
+    monitorConfig?.groups?.version_params?.["Controller's Date"] ??
+    null
+  const timeSpec =
+    settingsConfig?.groups?.version_params?.Time ?? monitorConfig?.groups?.version_params?.Time ?? null
+  const canOpenDateTimeSync = modelUpper === 'EICS141'
 
   useEffect(() => {
     const id = window.setInterval(() => setToolbarNow(new Date()), 1000)
@@ -329,6 +358,7 @@ function AppLayout() {
 
   useEffect(() => {
     const offData = window.icms.onSerialData(({ hex }) => {
+      setLastSerialRxAt(Date.now())
       serialLineKey.current += 1
       const id = serialLineKey.current
       setSerialLines((prev) => {
@@ -351,6 +381,21 @@ function AppLayout() {
   }, [])
 
   useEffect(() => {
+    const onTrafficLine = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail
+      if (!detail) return
+      serialLineKey.current += 1
+      const id = serialLineKey.current
+      setSerialLines((prev) => {
+        const next = [...prev, `${id}\t${detail}`]
+        return next.length > 500 ? next.slice(-500) : next
+      })
+    }
+    window.addEventListener('icms:traffic-line', onTrafficLine as EventListener)
+    return () => window.removeEventListener('icms:traffic-line', onTrafficLine as EventListener)
+  }, [])
+
+  useEffect(() => {
     if (location.pathname !== '/settings' && location.pathname !== '/dashboard') return
     setSerialLines([])
     serialLineKey.current = 0
@@ -369,7 +414,7 @@ function AppLayout() {
     const pollSettings = path === '/settings'
     const pollMonitor = path === '/dashboard'
     if (!pollSettings && !pollMonitor) return
-    if (pollSettings && settingsParamEditBlocksPoll) return
+    if (settingsParamEditBlocksPoll) return
 
     const model = localStorage.getItem(STORAGE_MODEL)
     const fw = localStorage.getItem(STORAGE_FIRMWARE)
@@ -404,7 +449,7 @@ function AppLayout() {
     }
 
     const tick = async () => {
-      if (pollSettings && settingsPollHoldRef.current) return
+      if (settingsPollHoldRef.current) return
       const { label, bytes } = frames[step % frames.length]
       step += 1
       const hex = bytes.map((b) => b.toString(16).padStart(2, '0')).join(' ')
@@ -424,7 +469,7 @@ function AppLayout() {
       window.clearTimeout(start)
       if (pollId !== undefined) window.clearInterval(pollId)
     }
-  }, [serialSession, location.pathname, settingsParamEditBlocksPoll])
+  }, [serialSession, location.pathname, settingsParamEditBlocksPoll, displayView])
 
   return (
     <div className="app-layout">
@@ -485,16 +530,28 @@ function AppLayout() {
             ) : null}
           </div>
           <div className="content-toolbar-end">
-            <time
-              className="content-toolbar-datetime"
-              dateTime={toolbarNow.toISOString()}
-              title={toolbarNow.toLocaleString()}
+            <span
+              className={`comm-status-dot ${commHealthy ? 'comm-status-dot--ok' : 'comm-status-dot--bad'}`}
+              aria-label={commHealthy ? 'Communication healthy' : 'Communication timeout'}
+              title={commHealthy ? 'Communication healthy' : 'No response in last 4 seconds'}
+            />
+            <button
+              type="button"
+              className="content-toolbar-datetime-btn"
+              title={canOpenDateTimeSync ? 'Date/Time sync' : 'Date/Time sync unavailable for this device'}
+              onClick={() => {
+                if (!canOpenDateTimeSync) return
+                beginSettingsParamEdit()
+                setDateTimeSyncOpen(true)
+              }}
             >
-              {toolbarNow.toLocaleString(undefined, {
-                dateStyle: 'medium',
-                timeStyle: 'medium',
-              })}
-            </time>
+              <time className="content-toolbar-datetime" dateTime={toolbarNow.toISOString()}>
+                {toolbarNow.toLocaleString(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'medium',
+                })}
+              </time>
+            </button>
             <button
               type="button"
               className={serialSession ? 'connect-button connect-button--connected' : 'connect-button'}
@@ -509,6 +566,7 @@ function AppLayout() {
                   await window.icms.closeSerialPort()
                   setSerialSession(null)
                   setSerialLines([])
+                  setLastSerialRxAt(null)
                   return
                 }
                 setConnectOpen(true)
@@ -541,6 +599,7 @@ function AppLayout() {
               baudRate={serialSession?.baudRate ?? 0}
               slaveId={serialSession?.slaveId ?? ''}
               lines={serialLines}
+              onClear={clearSerialTraffic}
             />
           </div>
         ) : null}
@@ -550,9 +609,23 @@ function AppLayout() {
           onConnected={(info) => {
             setSerialLines([])
             serialLineKey.current = 0
+            setLastSerialRxAt(null)
             setSerialSession(info)
           }}
         />
+        {canOpenDateTimeSync && dateTimeSyncOpen ? (
+          <DateTimeSyncDialog
+            open
+            onClose={() => {
+              endSettingsParamEdit()
+              setDateTimeSyncOpen(false)
+            }}
+            serialConnected={Boolean(serialSession)}
+            slaveId={serialSession?.slaveId ?? ''}
+            controllerDateSpec={Array.isArray(controllerDateSpec) ? controllerDateSpec : []}
+            timeSpec={Array.isArray(timeSpec) ? timeSpec : []}
+          />
+        ) : null}
         <DisplayViewProvider
           view={displayView}
           serialConnected={Boolean(serialSession)}
@@ -561,6 +634,7 @@ function AppLayout() {
           serialPath={serialSession?.path ?? ''}
           serialBaudRate={serialSession?.baudRate ?? 0}
           serialSlaveId={serialSession?.slaveId ?? ''}
+          clearSerialTraffic={clearSerialTraffic}
           beginSettingsParamEdit={beginSettingsParamEdit}
           endSettingsParamEdit={endSettingsParamEdit}
         >

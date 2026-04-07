@@ -137,6 +137,8 @@ function resolveMonitorEntry(
   const model = modelName?.trim()
   const fw = firmwareVersion?.trim()
   if (!model || !fw) return null
+  const modelNorm = model.toLowerCase()
+  const fwCandidates = Array.from(new Set([fw, fw.replace(/^v/i, '').trim()]))
 
   const { products } = productsData as {
     products: Array<{
@@ -148,10 +150,12 @@ function resolveMonitorEntry(
     }>
   }
 
-  const product = products.find((p) => p.product_name === model)
+  const product = products.find((p) => p.product_name.trim().toLowerCase() === modelNorm)
   if (!product) return null
 
-  const versionEntry = product.versions.find((v) => v.version === fw)
+  const versionEntry = product.versions.find((v) =>
+    fwCandidates.some((cand) => v.version.trim().toLowerCase() === cand.toLowerCase()),
+  )
   if (!versionEntry?.sidebar_params) return null
 
   const monitor = versionEntry.sidebar_params.find(
@@ -248,6 +252,8 @@ function resolveSettingsEntry(
   const model = modelName?.trim()
   const fw = firmwareVersion?.trim()
   if (!model || !fw) return null
+  const modelNorm = model.toLowerCase()
+  const fwCandidates = Array.from(new Set([fw, fw.replace(/^v/i, '').trim()]))
 
   const { products } = productsData as {
     products: Array<{
@@ -259,10 +265,12 @@ function resolveSettingsEntry(
     }>
   }
 
-  const product = products.find((p) => p.product_name === model)
+  const product = products.find((p) => p.product_name.trim().toLowerCase() === modelNorm)
   if (!product) return null
 
-  const versionEntry = product.versions.find((v) => v.version === fw)
+  const versionEntry = product.versions.find((v) =>
+    fwCandidates.some((cand) => v.version.trim().toLowerCase() === cand.toLowerCase()),
+  )
   if (!versionEntry?.sidebar_params) return null
 
   return extractSettingsFromSidebar(versionEntry.sidebar_params)

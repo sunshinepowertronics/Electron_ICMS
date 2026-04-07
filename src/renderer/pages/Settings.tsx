@@ -33,14 +33,35 @@ export default function Settings() {
     serialPath,
     serialBaudRate,
     serialSlaveId,
+    clearSerialTraffic,
     beginSettingsParamEdit,
     endSettingsParamEdit,
   } = useDisplayView()
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
+  const settingsConfig = getSettingsDashboardConfig(
+    localStorage.getItem(STORAGE_MODEL),
+    localStorage.getItem(STORAGE_FIRMWARE),
+  )
+  const groups = settingsConfig?.groups ?? null
+  const sectionLayout = settingsConfig?.sectionLayout ?? {}
+  const liveByParamName = useMemo(() => {
+    const cfg = getSettingsDashboardConfig(
+      localStorage.getItem(STORAGE_MODEL),
+      localStorage.getItem(STORAGE_FIRMWARE),
+    )
+    return computeSettingsLiveValues(serialLines, cfg)
+  }, [serialLines])
 
   useEffect(() => {
     return () => endSettingsParamEdit()
   }, [endSettingsParamEdit])
+
+  useEffect(() => {
+    if (view !== 'traffic') return
+    if (!editTarget) return
+    endSettingsParamEdit()
+    setEditTarget(null)
+  }, [view, editTarget, endSettingsParamEdit])
 
   const closeParamEdit = () => {
     endSettingsParamEdit()
@@ -57,25 +78,12 @@ export default function Settings() {
             baudRate={serialBaudRate}
             slaveId={serialSlaveId}
             lines={serialLines}
+            onClear={clearSerialTraffic}
           />
         </div>
       </>
     )
   }
-
-  const settingsConfig = getSettingsDashboardConfig(
-    localStorage.getItem(STORAGE_MODEL),
-    localStorage.getItem(STORAGE_FIRMWARE),
-  )
-  const groups = settingsConfig?.groups ?? null
-  const sectionLayout = settingsConfig?.sectionLayout ?? {}
-  const liveByParamName = useMemo(() => {
-    const cfg = getSettingsDashboardConfig(
-      localStorage.getItem(STORAGE_MODEL),
-      localStorage.getItem(STORAGE_FIRMWARE),
-    )
-    return computeSettingsLiveValues(serialLines, cfg)
-  }, [serialLines])
 
   const platform = typeof window !== 'undefined' && window.icms?.platform ? window.icms.platform : 'unknown'
 

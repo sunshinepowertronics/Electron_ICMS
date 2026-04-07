@@ -4,6 +4,7 @@ type TrafficProps = {
   baudRate: number
   slaveId: string
   lines: string[]
+  onClear: () => void
 }
 
 type TrafficRowKind = 'tx' | 'rx' | 'log'
@@ -27,7 +28,7 @@ function parseTrafficPayload(text: string): { kind: TrafficRowKind; query?: stri
   return { kind: 'rx', hex: t }
 }
 
-export default function Traffic({ connected, path, baudRate, slaveId, lines }: TrafficProps) {
+export default function Traffic({ connected, path, baudRate, slaveId, lines, onClear }: TrafficProps) {
   return (
     <section className="serial-readout traffic-view" aria-label="Serial traffic">
       <div className="serial-readout-bar">
@@ -49,6 +50,14 @@ export default function Traffic({ connected, path, baudRate, slaveId, lines }: T
             <strong>Not connected</strong>
           )}
         </p>
+        <button
+          type="button"
+          className="serial-readout-clear-btn"
+          onClick={onClear}
+          disabled={lines.length === 0}
+        >
+          Clear
+        </button>
       </div>
       <div className="serial-readout-log" role="log" aria-live="polite">
         {!connected ? (

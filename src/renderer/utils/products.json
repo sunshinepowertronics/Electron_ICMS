@@ -2973,13 +2973,15 @@
                   "°C",
                   "N/A",
                   "32",
-                  "0.1"
+                  "0.1",
+                  "int16"
                 ],
                 "T2(Amb)": [
                   "°C",
                   "N/A",
                   "34",
-                  "0.1"
+                  "0.1",
+                  "int16"
                 ],
                 "Δt": [
                   "°C",
@@ -3242,10 +3244,12 @@
                 "alarm_params": "query1",
                 "version_params": "query1"
               },
-              "left_labels_1_columns": 1,
-              "left_labels_1_custom_rows": 8,
-              "right_labels_1_columns": 2,
-              "right_labels_1_custom_rows": 6,
+              "cooling_params_columns": 1,
+              "cooling_params_rows": 8,
+              "alarm_params_columns": 2,
+              "alarm_params_rows": 6,
+              "version_params_columns": 2,
+              "version_params_rows": 6,
               "slave_id": "0x01",
               "cooling_params": {
                 "Password": [

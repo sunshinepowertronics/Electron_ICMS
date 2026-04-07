@@ -10,6 +10,7 @@ export type DisplayViewContextValue = {
   serialPath: string
   serialBaudRate: number
   serialSlaveId: string
+  clearSerialTraffic: () => void
   beginSettingsParamEdit: () => void
   endSettingsParamEdit: () => void
 }
@@ -25,6 +26,7 @@ export function DisplayViewProvider({
   serialPath,
   serialBaudRate,
   serialSlaveId,
+  clearSerialTraffic,
   beginSettingsParamEdit,
   endSettingsParamEdit,
 }: {
@@ -36,6 +38,7 @@ export function DisplayViewProvider({
   serialPath: string
   serialBaudRate: number
   serialSlaveId: string
+  clearSerialTraffic: () => void
   beginSettingsParamEdit: () => void
   endSettingsParamEdit: () => void
 }) {
@@ -49,6 +52,7 @@ export function DisplayViewProvider({
         serialPath,
         serialBaudRate,
         serialSlaveId,
+        clearSerialTraffic,
         beginSettingsParamEdit,
         endSettingsParamEdit,
       }}

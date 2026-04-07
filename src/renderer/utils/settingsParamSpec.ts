@@ -76,6 +76,16 @@ export function isAsciiLikeSpec(spec: unknown[]): boolean {
   return false
 }
 
+export function getAsciiStringMode(spec: unknown[]): '8bit' | '16bit' | null {
+  if (!Array.isArray(spec) || spec.length < 5) return null
+  const t4 = String(spec[4]).toLowerCase().trim()
+  const t5 = spec.length > 5 ? String(spec[5]).toLowerCase().trim() : ''
+  if (t5 === '16bit' || t4 === '16bit') return '16bit'
+  if (t5 === '8bit' || t4 === '8bit') return '8bit'
+  if (t5 === 'ascii' || t4 === 'ascii') return '8bit'
+  return null
+}
+
 export function getSpecNumericMode(spec: unknown[]): 'int16' | 'uint16' {
   const t5 = spec.length > 5 ? String(spec[5]).toLowerCase().trim() : ''
   const t4 = spec.length > 4 ? String(spec[4]).toLowerCase().trim() : ''

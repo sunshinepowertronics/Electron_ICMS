@@ -12,24 +12,8 @@ import {
 } from '../utils/monitorParamsFromProduct'
 
 export default function Dashboard() {
-  const { view, serialConnected, serialLines, serialPath, serialBaudRate, serialSlaveId } = useDisplayView()
-  if (view === 'traffic') {
-    return (
-      <>
-        <h1 className="page-title">Dashboard</h1>
-        <div className="traffic-log-embed">
-          <Traffic
-            connected={serialConnected}
-            path={serialPath}
-            baudRate={serialBaudRate}
-            slaveId={serialSlaveId}
-            lines={serialLines}
-          />
-        </div>
-      </>
-    )
-  }
-
+  const { view, serialConnected, serialLines, serialPath, serialBaudRate, serialSlaveId, clearSerialTraffic } =
+    useDisplayView()
   const dashboardConfig = getMonitorDashboardConfig(
     localStorage.getItem(STORAGE_MODEL),
     localStorage.getItem(STORAGE_FIRMWARE),
@@ -43,6 +27,24 @@ export default function Dashboard() {
     )
     return computeMonitorLiveValues(serialLines, cfg)
   }, [serialLines])
+
+  if (view === 'traffic') {
+    return (
+      <>
+        <h1 className="page-title">Dashboard</h1>
+        <div className="traffic-log-embed">
+          <Traffic
+            connected={serialConnected}
+            path={serialPath}
+            baudRate={serialBaudRate}
+            slaveId={serialSlaveId}
+            lines={serialLines}
+            onClear={clearSerialTraffic}
+          />
+        </div>
+      </>
+    )
+  }
 
   return (
     <>

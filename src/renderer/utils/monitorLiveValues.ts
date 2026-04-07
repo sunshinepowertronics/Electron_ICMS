@@ -78,6 +78,15 @@ function int16FromWord(u16: number): number {
   return u > 0x7fff ? u - 0x10000 : u
 }
 
+function formatMinutesToHm(totalMinutes: number): string {
+  if (!Number.isFinite(totalMinutes) || totalMinutes < 0) return 'N/A'
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = Math.floor(totalMinutes % 60)
+  const hh = String(hours).padStart(2, '0')
+  const mm = String(minutes).padStart(2, '0')
+  return `${hh} hrs ${mm} min`
+}
+
 function extractLineText(row: string): string {
   const tab = row.indexOf('\t')
   return tab >= 0 ? row.slice(tab + 1) : row
@@ -233,19 +242,14 @@ function getSpecMode(spec: unknown[]): string {
 }
 
 function scalarFromSpec(
+  paramName: string,
   spec: unknown[],
   words: number[] | null,
   coils: Uint8Array | null,
   alarmDiscreteTriple: [number, number, number] | null,
 ): string | null {
   if (spec.length < 4) return null
-  const modeToken = spec.length > 4 ? String(spec[4]).toLowerCase().trim() : ''
-  const mode =
-    modeToken === 'int16' || modeToken === 'float' || modeToken === 'bit'
-      ? modeToken
-      : !modeToken && coils && !words
-        ? 'bit'
-        : ''
+  const mode = getSpecMode(spec) || (!words && coils ? 'bit' : '')
   const mult = parseFloat(String(spec[3]))
   if (!Number.isFinite(mult)) return null
   const regTok = parseRegIndices(spec[2])
@@ -275,6 +279,84 @@ function scalarFromSpec(
     const f = new DataView(buf).getFloat32(0, false)
     if (!Number.isFinite(f)) return '—'
     return formatScaledNumber(f * mult)
+  }
+
+  if (mode === 'ascii' || mode === '8bit' || mode === '16bit' || mode === 'string') {
+    const start = regTok[0]
+    const end = regTok.length >= 2 ? regTok[1] : regTok[0]
+    if (start < 0 || end < 0) return null
+    const a = Math.min(start, end)
+    const b = Math.max(start, end)
+    const bytes: number[] = []
+    for (let i = a; i <= b; i++) {
+      if (i < 0 || i >= words.length) continue
+      const w = words[i] & 0xffff
+      bytes.push((w >> 8) & 0xff, w & 0xff)
+    }
+    const filtered = bytes.filter((x) => x !== 0)
+    if (filtered.length === 0) return 'N/A'
+    let s = ''
+    for (const c of filtered) {
+      if (c >= 32 && c <= 126) s += String.fromCharCode(c)
+    }
+    s = s.trim()
+    return s.length ? s : 'N/A'
+  }
+
+  if (mode === 'mmdd') {
+    const ri = regTok[0]
+    if (ri < 0 || ri >= words.length) return null
+    const v = words[ri] & 0xffff
+    const month = Math.floor(v / 100)
+    const day = v % 100
+    const mm = String(month).padStart(2, '0')
+    const dd = String(day).padStart(2, '0')
+    return `${mm}-${dd}`
+  }
+
+  if (mode === 'concat2' && regTok.length >= 2) {
+    const i = regTok[0]
+    const j = regTok[1]
+    if (i < 0 || j < 0 || i >= words.length || j >= words.length) return null
+    return `${words[i] & 0xffff}${words[j] & 0xffff}`
+  }
+
+  if (mode === 'uint32' && regTok.length >= 2) {
+    const i = regTok[0]
+    const j = regTok[1]
+    if (i < 0 || j < 0 || i >= words.length || j >= words.length) return null
+    const u32 = (((words[i] & 0xffff) << 16) | (words[j] & 0xffff)) >>> 0
+    const scaled = u32 * mult
+    return formatScaledNumber(scaled)
+  }
+
+  // Python parity: special multi-register formatting used by some configs.
+  if (regTok.length >= 2) {
+    const i = regTok[0]
+    const j = regTok[1]
+    if (i >= 0 && j >= 0 && i < words.length && j < words.length) {
+      if (paramName === 'Time') {
+        const hh = String(words[i] & 0xffff).padStart(2, '0')
+        const mm = String(words[j] & 0xffff).padStart(2, '0')
+        return `${hh}:${mm}`
+      }
+      if (paramName === 'Hex Running' || paramName === 'Run Hours of Only Hex') {
+        const totalMinutes = (((words[i] & 0xffff) << 16) | (words[j] & 0xffff)) >>> 0
+        return formatMinutesToHm(totalMinutes)
+      }
+    }
+  }
+
+  if (regTok.length >= 3) {
+    const [i, j, k] = regTok
+    if (i >= 0 && j >= 0 && k >= 0 && i < words.length && j < words.length && k < words.length) {
+      if (paramName === 'Installation Date' || paramName === "Controller's Date") {
+        const dd = String(words[i] & 0xffff).padStart(2, '0')
+        const mm = String(words[j] & 0xffff).padStart(2, '0')
+        const yy = String(words[k] & 0xffff).padStart(2, '0')
+        return `${dd}-${mm}-${yy}`
+      }
+    }
   }
 
   const ri = regTok[0]
@@ -328,7 +410,7 @@ function parseNumberOfFans(
     const words = q === 'query1' ? snap.holdingWords : null
     const coils = q === 'query2' ? snap.discreteBytes : null
     const triple = groupKey === 'alarm_params' ? alarmDiscreteByteIndices : null
-    const raw = scalarFromSpec(spec, words, coils, triple)
+    const raw = scalarFromSpec('number_of_fans', spec, words, coils, triple)
     if (raw === null) continue
     const n = parseIntFromLiveScalar(raw)
     if (n !== null && n >= 0) return n
@@ -556,7 +638,7 @@ export function buildModbusLiveDisplayMap(
     const alarmTriple = groupKey === 'alarm_params' ? alarmDiscreteByteIndices : null
     for (const [paramName, spec] of Object.entries(block)) {
       if (!Array.isArray(spec)) continue
-      const v = scalarFromSpec(spec, words, coils, alarmTriple)
+      const v = scalarFromSpec(paramName, spec, words, coils, alarmTriple)
       if (v !== null) out[paramName] = { value: v }
     }
   }

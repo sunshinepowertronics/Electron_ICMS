@@ -2,10 +2,13 @@ import { useEffect, useId, useState } from 'react'
 import type { MonitorQueryKey } from '../utils/monitorParamsFromProduct'
 import type { SettingsParamGroupKey } from '../utils/monitorParamsFromProduct'
 import {
+  firstRegisterIndexFromSpec,
   getDecimalMultiplierFromSpec,
+  getAsciiStringMode,
   getParameterRangeLabel,
   getSpecNumericMode,
   isAsciiLikeSpec,
+  registerRangeFromSpec,
   parseRangeBounds,
 } from '../utils/settingsParamSpec'
 import {
@@ -43,9 +46,17 @@ export function SettingsParamEditDialog({
   const titleId = useId()
   const hintId = useId()
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [writeProgress, setWriteProgress] = useState<{
+    writtenRegisters: number
+    totalRegisters: number
+    writtenChars: number
+    totalChars: number
+  } | null>(null)
   const isAlarm = groupKey === 'alarm_params'
   const ascii = isAsciiLikeSpec(spec)
+  const asciiMode = ascii ? getAsciiStringMode(spec) : null
   const mult = getDecimalMultiplierFromSpec(spec)
   const rangeLabel = getParameterRangeLabel(spec)
   const rangeBounds = rangeLabel ? parseRangeBounds(rangeLabel) : null
@@ -54,6 +65,11 @@ export function SettingsParamEditDialog({
   const hasHint = Boolean(rangeLabel || ascii)
   const inputLabel =
     mult !== null ? 'Value (device units)' : ascii ? 'Text' : isPassword ? 'Password' : 'Value'
+  const asciiRange = ascii ? registerRangeFromSpec(spec[2]) : null
+  const asciiStart = ascii ? (asciiRange?.start ?? firstRegisterIndexFromSpec(spec[2])) : null
+  const asciiEnd = ascii ? (asciiRange?.end ?? asciiStart) : null
+  const asciiTotalRegs =
+    ascii && asciiStart !== null && asciiEnd !== null ? Math.max(0, asciiEnd - asciiStart + 1) : 0
 
   const [toggleOn, setToggleOn] = useState(false)
   const [textInput, setTextInput] = useState('')
@@ -61,14 +77,13 @@ export function SettingsParamEditDialog({
   useEffect(() => {
     if (!open) return
     setError(null)
+    setSuccess(null)
     setBusy(false)
+    setWriteProgress(null)
     if (isAlarm) {
       setToggleOn(displayLooksEnabled(displayText))
     } else if (ascii) {
       setTextInput(displayText.trim())
-    } else if (mult !== null && displayText.trim()) {
-      const v = parseFloat(displayText.replace(/[^\d.-]/g, ''))
-      setTextInput(Number.isFinite(v) ? String(Math.round(v / mult)) : displayText.trim())
     } else {
       setTextInput(displayText.trim())
     }
@@ -87,6 +102,7 @@ export function SettingsParamEditDialog({
 
   const runWrite = async () => {
     setError(null)
+    setSuccess(null)
     if (!serialConnected) {
       setError('Connect serial first.')
       return
@@ -99,16 +115,25 @@ export function SettingsParamEditDialog({
           setError(res.error)
           return
         }
-        onClose()
+        setSuccess('Write successful.')
+        window.setTimeout(onClose, 700)
         return
       }
       if (ascii) {
-        const res = await writeSettingsAsciiRegisters(slaveId, spec, textInput)
+        setWriteProgress({
+          writtenRegisters: 0,
+          totalRegisters: asciiTotalRegs,
+          writtenChars: 0,
+          totalChars: asciiMode === '16bit' ? asciiTotalRegs * 2 : asciiTotalRegs,
+        })
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+        const res = await writeSettingsAsciiRegisters(slaveId, spec, textInput, (p) => setWriteProgress(p))
         if (!res.ok) {
           setError(res.error)
           return
         }
-        onClose()
+        setSuccess('Write successful.')
+        window.setTimeout(onClose, 700)
         return
       }
       const rawStr = textInput.trim()
@@ -124,7 +149,8 @@ export function SettingsParamEditDialog({
           setError(res.error)
           return
         }
-        onClose()
+        setSuccess('Write successful.')
+        window.setTimeout(onClose, 700)
         return
       }
       const rawInt = parseInt(rawStr, 10)
@@ -143,7 +169,8 @@ export function SettingsParamEditDialog({
         setError(res.error)
         return
       }
-      onClose()
+      setSuccess('Write successful.')
+      window.setTimeout(onClose, 700)
     } finally {
       setBusy(false)
     }
@@ -169,10 +196,43 @@ export function SettingsParamEditDialog({
 
         {hasHint ? (
           <p id={hintId} className="settings-edit-hint">
-            {[rangeLabel ? `Range: ${rangeLabel}` : '', ascii ? 'One character per register.' : '']
+            {[
+              rangeLabel ? `Range: ${rangeLabel}` : '',
+              ascii && asciiMode === '16bit'
+                ? 'Two characters per register.'
+                : ascii
+                  ? 'One character per register.'
+                  : '',
+            ]
               .filter(Boolean)
               .join(' · ')}
           </p>
+        ) : null}
+
+        {busy && ascii && writeProgress && writeProgress.totalRegisters > 1 ? (
+          <div className="settings-edit-progress" role="status" aria-live="polite">
+            <div className="settings-edit-progress-line">
+              <span className="settings-edit-spinner" aria-hidden="true" />
+              <span className="settings-edit-progress-text">
+                Writing… {writeProgress.writtenChars}/{writeProgress.totalChars} chars · {writeProgress.writtenRegisters}/
+                {writeProgress.totalRegisters} regs
+              </span>
+            </div>
+            <div className="settings-edit-progress-track" aria-hidden="true">
+              <div
+                className="settings-edit-progress-bar"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      Math.round((writeProgress.writtenRegisters / Math.max(1, writeProgress.totalRegisters)) * 100),
+                    ),
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
         ) : null}
 
         {isAlarm ? (
@@ -207,6 +267,11 @@ export function SettingsParamEditDialog({
         {error ? (
           <p className="settings-edit-error" role="alert">
             {error}
+          </p>
+        ) : null}
+        {success ? (
+          <p className="settings-edit-success" role="status">
+            {success}
           </p>
         ) : null}
 
