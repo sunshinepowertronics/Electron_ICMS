@@ -10,7 +10,7 @@ export function crc16Modbus(data: Uint8Array): number {
   return crc & 0xffff
 }
 
-function parseSlaveByte(slaveIdStr: string): number {
+export function parseSlaveByte(slaveIdStr: string): number {
   const s = slaveIdStr.trim()
   if (!s) return 1
   const n = /^0x/i.test(s) ? parseInt(s, 16) : parseInt(s, 10)
@@ -63,4 +63,30 @@ export function buildModbusRtuFrame(template: string, slaveIdStr: string): Uint8
   if (!sawSlaveKeyword) body[0] = parseSlaveByte(slaveIdStr)
   const crc = crc16Modbus(new Uint8Array(body))
   return new Uint8Array([...body, crc & 0xff, (crc >> 8) & 0xff])
+}
+
+function appendCrc(body: number[]): Uint8Array {
+  const crc = crc16Modbus(new Uint8Array(body))
+  return new Uint8Array([...body, crc & 0xff, (crc >> 8) & 0xff])
+}
+
+export function buildWriteSingleRegisterRtu(slaveIdStr: string, regAddr: number, valueU16: number): Uint8Array | null {
+  if (!Number.isFinite(regAddr) || regAddr < 0 || regAddr > 0xffff) return null
+  const v = Math.round(valueU16) & 0xffff
+  const slave = parseSlaveByte(slaveIdStr)
+  const hi = (regAddr >> 8) & 0xff
+  const lo = regAddr & 0xff
+  const vhi = (v >> 8) & 0xff
+  const vlo = v & 0xff
+  return appendCrc([slave, 0x06, hi, lo, vhi, vlo])
+}
+
+export function buildWriteSingleCoilRtu(slaveIdStr: string, coilAddr: number, on: boolean): Uint8Array | null {
+  if (!Number.isFinite(coilAddr) || coilAddr < 0 || coilAddr > 0xffff) return null
+  const slave = parseSlaveByte(slaveIdStr)
+  const hi = (coilAddr >> 8) & 0xff
+  const lo = coilAddr & 0xff
+  const vhi = on ? 0xff : 0x00
+  const vlo = 0x00
+  return appendCrc([slave, 0x05, hi, lo, vhi, vlo])
 }

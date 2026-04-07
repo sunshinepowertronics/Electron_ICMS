@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   BrowserRouter,
   Routes,
@@ -304,6 +304,16 @@ function AppLayout() {
   } | null>(null)
   const [serialLines, setSerialLines] = useState<string[]>([])
   const serialLineKey = useRef(0)
+  const settingsPollHoldRef = useRef(false)
+  const [settingsParamEditBlocksPoll, setSettingsParamEditBlocksPoll] = useState(false)
+  const beginSettingsParamEdit = useCallback(() => {
+    settingsPollHoldRef.current = true
+    setSettingsParamEditBlocksPoll(true)
+  }, [])
+  const endSettingsParamEdit = useCallback(() => {
+    settingsPollHoldRef.current = false
+    setSettingsParamEditBlocksPoll(false)
+  }, [])
   const [displayView, setDisplayView] = useState<'data' | 'traffic'>('data')
   const [toolbarNow, setToolbarNow] = useState(() => new Date())
   const productNav = getProductNavFromStorage()
@@ -347,12 +357,19 @@ function AppLayout() {
   }, [location.pathname])
 
   useEffect(() => {
+    if (location.pathname !== '/settings') {
+      endSettingsParamEdit()
+    }
+  }, [location.pathname, endSettingsParamEdit])
+
+  useEffect(() => {
     if (!serialSession) return
 
     const path = location.pathname
     const pollSettings = path === '/settings'
     const pollMonitor = path === '/dashboard'
     if (!pollSettings && !pollMonitor) return
+    if (pollSettings && settingsParamEditBlocksPoll) return
 
     const model = localStorage.getItem(STORAGE_MODEL)
     const fw = localStorage.getItem(STORAGE_FIRMWARE)
@@ -387,6 +404,7 @@ function AppLayout() {
     }
 
     const tick = async () => {
+      if (pollSettings && settingsPollHoldRef.current) return
       const { label, bytes } = frames[step % frames.length]
       step += 1
       const hex = bytes.map((b) => b.toString(16).padStart(2, '0')).join(' ')
@@ -406,7 +424,7 @@ function AppLayout() {
       window.clearTimeout(start)
       if (pollId !== undefined) window.clearInterval(pollId)
     }
-  }, [serialSession, location.pathname])
+  }, [serialSession, location.pathname, settingsParamEditBlocksPoll])
 
   return (
     <div className="app-layout">
@@ -543,6 +561,8 @@ function AppLayout() {
           serialPath={serialSession?.path ?? ''}
           serialBaudRate={serialSession?.baudRate ?? 0}
           serialSlaveId={serialSession?.slaveId ?? ''}
+          beginSettingsParamEdit={beginSettingsParamEdit}
+          endSettingsParamEdit={endSettingsParamEdit}
         >
           <main
             className={`content${

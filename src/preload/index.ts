@@ -13,7 +13,8 @@ contextBridge.exposeInMainWorld('icms', {
   openSerialPort: (opts: { path: string; baudRate: number; slaveId: string }) =>
     ipcRenderer.invoke('serial:open', opts),
   closeSerialPort: () => ipcRenderer.invoke('serial:close'),
-  writeSerialBytes: (bytes: number[]) => ipcRenderer.invoke('serial:write', bytes),
+  writeSerialBytes: (bytes: number[], meta?: { logTx?: string }) =>
+    ipcRenderer.invoke('serial:write', bytes, meta),
   getSerialStatus: () => ipcRenderer.invoke('serial:status'),
   onSerialData: (callback: (payload: { hex: string; length: number }) => void) => {
     const listener = (_: Electron.IpcRendererEvent, payload: { hex: string; length: number }) =>

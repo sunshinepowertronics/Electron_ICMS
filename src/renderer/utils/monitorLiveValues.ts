@@ -12,15 +12,31 @@ import {
 import type {
   MonitorDashboardConfig,
   MonitorQueryKey,
-  ParamGroupKey,
+  SettingsDashboardConfig,
 } from './monitorParamsFromProduct'
+
+type ModbusLiveDisplayConfig = {
+  groups: Partial<Record<string, Record<string, unknown[]>>>
+  queryMapping: Partial<Record<string, MonitorQueryKey>>
+  alarmDiscreteByteIndices: [number, number, number] | null
+  alarmHoldingBitBaseRegister: number | null
+}
+
+export type ModbusLiveDisplayOptions = {
+  /** Settings page: alarm rows show Enabled (bit 1) / Disabled (bit 0) instead of monitor alarm labels. */
+  settingsAlarmsEnabledDisabled?: boolean
+}
+
+function settingsEnabledDisabledCell(bit: 0 | 1): MonitorLiveCell {
+  return bit ? { value: 'Enabled', color: '#00ff00' } : { value: 'Disabled', color: '#888888' }
+}
 
 export type MonitorRegisterSnapshots = {
   holdingWords: number[] | null
   discreteBytes: Uint8Array | null
 }
 
-export type MonitorLiveCell = { value: string; color?: string }
+export type MonitorLiveCell = { value: string; color?: string; nameMuted?: boolean }
 
 function hexStringToBytes(hex: string): number[] | null {
   const parts = hex.trim().split(/\s+/).filter(Boolean)
@@ -67,19 +83,23 @@ function extractLineText(row: string): string {
   return tab >= 0 ? row.slice(tab + 1) : row
 }
 
-export function parseMonitorSerialSnapshots(serialLines: string[]): MonitorRegisterSnapshots {
+export type SerialPollPrefix = 'monitor' | 'settings'
+
+export function parsePollSerialSnapshots(serialLines: string[], prefix: SerialPollPrefix): MonitorRegisterSnapshots {
   let pending: MonitorQueryKey | null = null
   let holdingWords: number[] | null = null
   let discreteBytes: Uint8Array | null = null
+  const txQ1 = `[TX ${prefix}/q1]`
+  const txQ2 = `[TX ${prefix}/q2]`
 
   for (const row of serialLines) {
     const text = extractLineText(row).trim()
 
-    if (text.startsWith('[TX monitor/q1]')) {
+    if (text.startsWith(txQ1)) {
       pending = 'query1'
       continue
     }
-    if (text.startsWith('[TX monitor/q2]')) {
+    if (text.startsWith(txQ2)) {
       pending = 'query2'
       continue
     }
@@ -106,6 +126,10 @@ export function parseMonitorSerialSnapshots(serialLines: string[]): MonitorRegis
   }
 
   return { holdingWords, discreteBytes }
+}
+
+export function parseMonitorSerialSnapshots(serialLines: string[]): MonitorRegisterSnapshots {
+  return parsePollSerialSnapshots(serialLines, 'monitor')
 }
 
 function formatScaledNumber(n: number): string {
@@ -280,11 +304,54 @@ function readTripleBytes(coils: Uint8Array, triple: [number, number, number]): [
   ]
 }
 
+function parseIntFromLiveScalar(s: string): number | null {
+  const digits = s.replace(/\D/g, '')
+  if (digits.length > 0) {
+    const n = parseInt(digits, 10)
+    return Number.isFinite(n) ? n : null
+  }
+  const n = parseInt(s.trim(), 10)
+  return Number.isFinite(n) ? n : null
+}
+
+function parseNumberOfFans(
+  config: ModbusLiveDisplayConfig,
+  snap: MonitorRegisterSnapshots,
+): number | null {
+  const { groups, queryMapping, alarmDiscreteByteIndices } = config
+  for (const groupKey of Object.keys(groups)) {
+    const block = groups[groupKey]
+    const spec = block?.number_of_fans
+    if (!block || !Array.isArray(spec)) continue
+    const q = queryMapping[groupKey]
+    if (!q) continue
+    const words = q === 'query1' ? snap.holdingWords : null
+    const coils = q === 'query2' ? snap.discreteBytes : null
+    const triple = groupKey === 'alarm_params' ? alarmDiscreteByteIndices : null
+    const raw = scalarFromSpec(spec, words, coils, triple)
+    if (raw === null) continue
+    const n = parseIntFromLiveScalar(raw)
+    if (n !== null && n >= 0) return n
+  }
+  return null
+}
+
+function applyNumberOfFansOverrides(out: Record<string, MonitorLiveCell>, numFans: number | null): void {
+  if (numFans === null || numFans < 0) return
+  const cap = Math.min(6, Math.floor(numFans))
+  const muted: MonitorLiveCell = { value: 'N/A', color: '#888888', nameMuted: true }
+  for (let i = cap + 1; i <= 6; i++) {
+    out[`Fan ${i} Status`] = { ...muted }
+    out[`Fan ${i} Run Hour`] = { ...muted }
+  }
+}
+
 function applyFanStatusBlock(
   block: Record<string, unknown[]>,
   coils: Uint8Array,
   defaultTriple: [number, number, number],
   out: Record<string, MonitorLiveCell>,
+  settingsAlarmsBinary: boolean,
 ): boolean {
   const fanOnSpec = block['Fan On']
   if (!Array.isArray(fanOnSpec) || fanOnSpec.length < 6 || String(fanOnSpec[5]).trim() !== 'fan_status') {
@@ -302,7 +369,7 @@ function applyFanStatusBlock(
     const p = firstRegToken(sp[2])
     if (p === null || p < 0) continue
     const st = getBitIn24(b0, b1, b2, p)
-    out[key] = cell(getFanStatusDisplay(fanOn, st))
+    out[key] = settingsAlarmsBinary ? settingsEnabledDisabledCell(st) : cell(getFanStatusDisplay(fanOn, st))
   }
   return true
 }
@@ -341,15 +408,46 @@ function alarmDisplayFromQuery1(
   return getAlarmMapping(paramName, bit)
 }
 
-export function buildMonitorLiveDisplayMap(
-  config: MonitorDashboardConfig,
+function alarmBitFromQuery1(
+  spec: unknown[],
+  words: number[],
+  alarmWordBase: number | null,
+): 0 | 1 | null {
+  if (spec.length < 4) return null
+  const mode = getSpecMode(spec)
+  const mult = parseFloat(String(spec[3]))
+  if (!Number.isFinite(mult)) return null
+  const bitPos = firstRegToken(spec[2])
+  if (mode === 'bit' && bitPos !== null && bitPos >= 0) {
+    if (alarmWordBase !== null) {
+      if (alarmWordBase >= words.length || bitPos > 15) return null
+      return ((words[alarmWordBase] >> bitPos) & 1) as 0 | 1
+    }
+    const regIdx = Math.floor(bitPos / 16)
+    const bitIn = bitPos % 16
+    if (regIdx < 0 || regIdx >= words.length) return null
+    return ((words[regIdx] >> bitIn) & 1) as 0 | 1
+  }
+  if (mode === 'bit') return null
+  const ri = firstRegToken(spec[2])
+  if (ri === null || ri < 0 || ri >= words.length) return null
+  const u = words[ri] & 0xffff
+  const raw = mode === 'int16' ? int16FromWord(u) : u
+  const scaled = raw * mult
+  return (scaled !== 0 ? 1 : 0) as 0 | 1
+}
+
+export function buildModbusLiveDisplayMap(
+  config: ModbusLiveDisplayConfig,
   snap: MonitorRegisterSnapshots,
+  liveOptions?: ModbusLiveDisplayOptions,
 ): Record<string, MonitorLiveCell> {
   const out: Record<string, MonitorLiveCell> = {}
   const { groups, queryMapping, alarmDiscreteByteIndices, alarmHoldingBitBaseRegister } = config
   const defaultDiscreteTriple: [number, number, number] = alarmDiscreteByteIndices ?? [0, 1, 2]
+  const settingsAlarmBits = liveOptions?.settingsAlarmsEnabledDisabled === true
 
-  for (const groupKey of Object.keys(groups) as ParamGroupKey[]) {
+  for (const groupKey of Object.keys(groups)) {
     const block = groups[groupKey]
     if (!block) continue
     const q = queryMapping[groupKey]
@@ -359,7 +457,13 @@ export function buildMonitorLiveDisplayMap(
     const coils = q === 'query2' ? snap.discreteBytes : null
 
     if (groupKey === 'alarm_params' && q === 'query2' && coils?.length) {
-      const fanStatusApplied = applyFanStatusBlock(block, coils, defaultDiscreteTriple, out)
+      const fanStatusApplied = applyFanStatusBlock(
+        block,
+        coils,
+        defaultDiscreteTriple,
+        out,
+        settingsAlarmBits,
+      )
 
       for (const [paramName, spec] of Object.entries(block)) {
         if (!Array.isArray(spec)) continue
@@ -379,14 +483,18 @@ export function buildMonitorLiveDisplayMap(
         if (paramName === 'Usys' && regTok.length >= 2) {
           const a = getBitIn24(db0, db1, db2, regTok[0])
           const b = getBitIn24(db0, db1, db2, regTok[1])
-          out[paramName] = cell(dualBitHighLowNormal(a, b))
+          out[paramName] = settingsAlarmBits
+            ? settingsEnabledDisabledCell(a)
+            : cell(dualBitHighLowNormal(a, b))
           continue
         }
 
         if (paramName === 'Cabinet Temperature' && regTok.length >= 2) {
           const a = getBitIn24(db0, db1, db2, regTok[0])
           const b = getBitIn24(db0, db1, db2, regTok[1])
-          out[paramName] = cell(dualBitHighLowNormal(a, b))
+          out[paramName] = settingsAlarmBits
+            ? settingsEnabledDisabledCell(a)
+            : cell(dualBitHighLowNormal(a, b))
           continue
         }
 
@@ -396,26 +504,36 @@ export function buildMonitorLiveDisplayMap(
           if (failP !== null && runP !== null && failP >= 0 && runP >= 0) {
             const failB = getBitIn24(db0, db1, db2, failP)
             const runB = getBitIn24(db0, db1, db2, runP)
-            out[paramName] = cell(internalExternalFanDisplay(failB, runB))
+            out[paramName] = settingsAlarmBits
+              ? settingsEnabledDisabledCell(runB)
+              : cell(internalExternalFanDisplay(failB, runB))
             continue
           }
         }
 
         if (regTok.length === 1 && regTok[0] >= 0 && regTok[0] <= 23) {
-          out[paramName] = cell(parseAlarmBit(db0, db1, db2, regTok[0], paramName))
+          const bit = getBitIn24(db0, db1, db2, regTok[0])
+          out[paramName] = settingsAlarmBits
+            ? settingsEnabledDisabledCell(bit)
+            : cell(parseAlarmBit(db0, db1, db2, regTok[0], paramName))
           continue
         }
 
         if (regTok.length >= 2 && regTok[0] >= 0 && regTok[0] <= 2 && regTok[1] >= 0 && regTok[1] <= 7) {
           const k = regTok[0] * 8 + regTok[1]
-          out[paramName] = cell(parseAlarmBit(db0, db1, db2, k, paramName))
+          const bit = getBitIn24(db0, db1, db2, k)
+          out[paramName] = settingsAlarmBits
+            ? settingsEnabledDisabledCell(bit)
+            : cell(parseAlarmBit(db0, db1, db2, k, paramName))
           continue
         }
 
         const addr = resolveCoilByteAndBit(regTok, coils)
         if (addr) {
           const bitVal = ((coils[addr.bi] >> addr.bj) & 1) as 0 | 1
-          out[paramName] = cell(getAlarmMapping(paramName, bitVal))
+          out[paramName] = settingsAlarmBits
+            ? settingsEnabledDisabledCell(bitVal)
+            : cell(getAlarmMapping(paramName, bitVal))
         }
       }
       continue
@@ -424,8 +542,13 @@ export function buildMonitorLiveDisplayMap(
     if (groupKey === 'alarm_params' && q === 'query1' && words?.length) {
       for (const [paramName, spec] of Object.entries(block)) {
         if (!Array.isArray(spec)) continue
-        const ad = alarmDisplayFromQuery1(paramName, spec, words, alarmHoldingBitBaseRegister)
-        if (ad) out[paramName] = cell(ad)
+        if (settingsAlarmBits) {
+          const bit = alarmBitFromQuery1(spec, words, alarmHoldingBitBaseRegister)
+          if (bit !== null) out[paramName] = settingsEnabledDisabledCell(bit)
+        } else {
+          const ad = alarmDisplayFromQuery1(paramName, spec, words, alarmHoldingBitBaseRegister)
+          if (ad) out[paramName] = cell(ad)
+        }
       }
       continue
     }
@@ -438,7 +561,16 @@ export function buildMonitorLiveDisplayMap(
     }
   }
 
+  applyNumberOfFansOverrides(out, parseNumberOfFans(config, snap))
+
   return out
+}
+
+export function buildMonitorLiveDisplayMap(
+  config: MonitorDashboardConfig,
+  snap: MonitorRegisterSnapshots,
+): Record<string, MonitorLiveCell> {
+  return buildModbusLiveDisplayMap(config, snap, undefined)
 }
 
 export function computeMonitorLiveValues(
@@ -446,6 +578,15 @@ export function computeMonitorLiveValues(
   config: MonitorDashboardConfig | null,
 ): Record<string, MonitorLiveCell> {
   if (!config) return {}
-  const snap = parseMonitorSerialSnapshots(serialLines)
-  return buildMonitorLiveDisplayMap(config, snap)
+  const snap = parsePollSerialSnapshots(serialLines, 'monitor')
+  return buildModbusLiveDisplayMap(config, snap)
+}
+
+export function computeSettingsLiveValues(
+  serialLines: string[],
+  config: SettingsDashboardConfig | null,
+): Record<string, MonitorLiveCell> {
+  if (!config) return {}
+  const snap = parsePollSerialSnapshots(serialLines, 'settings')
+  return buildModbusLiveDisplayMap(config, snap, { settingsAlarmsEnabledDisabled: true })
 }

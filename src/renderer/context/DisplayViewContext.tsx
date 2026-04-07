@@ -10,6 +10,8 @@ export type DisplayViewContextValue = {
   serialPath: string
   serialBaudRate: number
   serialSlaveId: string
+  beginSettingsParamEdit: () => void
+  endSettingsParamEdit: () => void
 }
 
 const DisplayViewContext = createContext<DisplayViewContextValue | null>(null)
@@ -23,6 +25,8 @@ export function DisplayViewProvider({
   serialPath,
   serialBaudRate,
   serialSlaveId,
+  beginSettingsParamEdit,
+  endSettingsParamEdit,
 }: {
   children: ReactNode
   view: DisplayView
@@ -32,6 +36,8 @@ export function DisplayViewProvider({
   serialPath: string
   serialBaudRate: number
   serialSlaveId: string
+  beginSettingsParamEdit: () => void
+  endSettingsParamEdit: () => void
 }) {
   return (
     <DisplayViewContext.Provider
@@ -43,6 +49,8 @@ export function DisplayViewProvider({
         serialPath,
         serialBaudRate,
         serialSlaveId,
+        beginSettingsParamEdit,
+        endSettingsParamEdit,
       }}
     >
       {children}

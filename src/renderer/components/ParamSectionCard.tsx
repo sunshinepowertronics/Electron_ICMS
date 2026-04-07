@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react'
 import {
   PARAM_SECTION_TITLES,
   splitParamEntriesForLayout,
@@ -20,17 +21,30 @@ export function formatDefault(raw: unknown): string {
   return t.length > 0 ? t : '—'
 }
 
+function isVersionParamHidden(spec: unknown[]): boolean {
+  return spec.length >= 5 && String(spec[4]).trim() === 'hide'
+}
+
 function entriesForParamMatrix(
   groupKey: ParamGroupKey,
   block: Record<string, unknown[]>,
 ): [string, unknown[]][] {
-  const entries = Object.entries(block)
-  if (groupKey !== 'alarm_params') return entries
-  const fanOn = block['Fan On']
-  const hideFanOn =
-    Array.isArray(fanOn) && fanOn.length >= 6 && String(fanOn[5]).trim() === 'fan_status'
-  if (!hideFanOn) return entries
-  return entries.filter(([name]) => name !== 'Fan On')
+  let entries = Object.entries(block)
+
+  if (groupKey === 'version_params') {
+    entries = entries.filter(([, spec]) => !Array.isArray(spec) || !isVersionParamHidden(spec))
+  }
+
+  if (groupKey === 'alarm_params') {
+    const fanOn = block['Fan On']
+    const hideFanOn =
+      Array.isArray(fanOn) && fanOn.length >= 6 && String(fanOn[5]).trim() === 'fan_status'
+    if (hideFanOn) {
+      entries = entries.filter(([name]) => name !== 'Fan On')
+    }
+  }
+
+  return entries
 }
 
 export function ParamSectionCard({
@@ -38,11 +52,15 @@ export function ParamSectionCard({
   block,
   layout,
   liveByParamName,
+  interactive,
+  onParamRowClick,
 }: {
   groupKey: ParamGroupKey
   block: Record<string, unknown[]>
   layout: SectionGridLayout
   liveByParamName?: Record<string, MonitorLiveCell>
+  interactive?: boolean
+  onParamRowClick?: (p: { paramName: string; spec: unknown[]; displayText: string }) => void
 }) {
   const columnChunks = splitParamEntriesForLayout(entriesForParamMatrix(groupKey, block), layout)
 
@@ -56,9 +74,30 @@ export function ParamSectionCard({
               const live = liveByParamName?.[name]
               const text = live?.value ?? formatDefault(spec.length > 1 ? spec[1] : undefined)
               const valueColor = live ? (live.color ?? LIVE_SCALAR_COLOR) : undefined
+              const clickable = Boolean(interactive && onParamRowClick)
               return (
-                <li key={name} className="dashboard-param-row">
-                  <span className="dashboard-param-name">{name}</span>
+                <li
+                  key={name}
+                  className={`dashboard-param-row${clickable ? ' dashboard-param-row--clickable' : ''}`}
+                  {...(clickable
+                    ? {
+                        role: 'button' as const,
+                        tabIndex: 0,
+                        onClick: () => onParamRowClick!({ paramName: name, spec, displayText: text }),
+                        onKeyDown: (e: KeyboardEvent) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            onParamRowClick!({ paramName: name, spec, displayText: text })
+                          }
+                        },
+                      }
+                    : {})}
+                >
+                  <span
+                    className={`dashboard-param-name${live?.nameMuted ? ' dashboard-param-name--muted' : ''}`}
+                  >
+                    {name}
+                  </span>
                   <span
                     className="dashboard-param-default"
                     style={valueColor ? { color: valueColor } : undefined}

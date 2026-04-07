@@ -1,7 +1,10 @@
+import { useEffect, useMemo, useState } from 'react'
 import { ParamSectionCard } from '../components/ParamSectionCard'
+import { SettingsParamEditDialog } from '../components/SettingsParamEditDialog'
 import Traffic from './Traffic'
 import { useDisplayView } from '../context/DisplayViewContext'
 import { STORAGE_FIRMWARE, STORAGE_MODEL } from '../utils/deviceStorage'
+import { computeSettingsLiveValues } from '../utils/monitorLiveValues'
 import {
   DEFAULT_SECTION_LAYOUT,
   getSettingsDashboardConfig,
@@ -15,8 +18,34 @@ const SETTINGS_GRID_CLASS: Record<SettingsParamGroupKey, string> = {
   version_params: 'settings-param-version',
 }
 
+type EditTarget = {
+  groupKey: SettingsParamGroupKey
+  paramName: string
+  spec: unknown[]
+  displayText: string
+}
+
 export default function Settings() {
-  const { view, serialConnected, serialLines, serialPath, serialBaudRate, serialSlaveId } = useDisplayView()
+  const {
+    view,
+    serialConnected,
+    serialLines,
+    serialPath,
+    serialBaudRate,
+    serialSlaveId,
+    beginSettingsParamEdit,
+    endSettingsParamEdit,
+  } = useDisplayView()
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
+
+  useEffect(() => {
+    return () => endSettingsParamEdit()
+  }, [endSettingsParamEdit])
+
+  const closeParamEdit = () => {
+    endSettingsParamEdit()
+    setEditTarget(null)
+  }
   if (view === 'traffic') {
     return (
       <>
@@ -40,6 +69,13 @@ export default function Settings() {
   )
   const groups = settingsConfig?.groups ?? null
   const sectionLayout = settingsConfig?.sectionLayout ?? {}
+  const liveByParamName = useMemo(() => {
+    const cfg = getSettingsDashboardConfig(
+      localStorage.getItem(STORAGE_MODEL),
+      localStorage.getItem(STORAGE_FIRMWARE),
+    )
+    return computeSettingsLiveValues(serialLines, cfg)
+  }, [serialLines])
 
   const platform = typeof window !== 'undefined' && window.icms?.platform ? window.icms.platform : 'unknown'
 
@@ -75,12 +111,30 @@ export default function Settings() {
                     groupKey={groupKey}
                     block={block}
                     layout={sectionLayout[groupKey] ?? DEFAULT_SECTION_LAYOUT}
+                    liveByParamName={liveByParamName}
+                    interactive
+                    onParamRowClick={(p) => {
+                      beginSettingsParamEdit()
+                      setEditTarget({ groupKey, ...p })
+                    }}
                   />
                 </div>
               )
             })}
           </div>
-       
+          {editTarget ? (
+            <SettingsParamEditDialog
+              open
+              onClose={closeParamEdit}
+              paramName={editTarget.paramName}
+              spec={editTarget.spec}
+              groupKey={editTarget.groupKey}
+              displayText={editTarget.displayText}
+              slaveId={serialSlaveId}
+              serialConnected={serialConnected}
+              queryForGroup={settingsConfig?.queryMapping[editTarget.groupKey]}
+            />
+          ) : null}
         </>
       )}
     </>

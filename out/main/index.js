@@ -289,28 +289,41 @@ function normalizeSerialWritePayload(bytes) {
   }
   return null;
 }
-electron.ipcMain.handle("serial:write", async (_e, bytes) => {
-  if (!activeSerialPort?.isOpen) return { ok: false, error: "Serial port not open" };
-  const normalized = normalizeSerialWritePayload(bytes);
-  if (!normalized || normalized.length === 0) return { ok: false, error: "No bytes to write" };
-  const buf = Buffer.from(normalized);
-  const port = activeSerialPort;
-  try {
-    await new Promise((resolve, reject) => {
-      port.write(buf, (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        port.drain((derr) => derr ? reject(derr) : resolve());
+function serialWriteLogTag(meta) {
+  if (meta === null || typeof meta !== "object" || Array.isArray(meta)) return null;
+  const t = meta.logTx;
+  return typeof t === "string" && t.length > 0 ? t : null;
+}
+electron.ipcMain.handle(
+  "serial:write",
+  async (_e, bytes, meta) => {
+    if (!activeSerialPort?.isOpen) return { ok: false, error: "Serial port not open" };
+    const normalized = normalizeSerialWritePayload(bytes);
+    if (!normalized || normalized.length === 0) return { ok: false, error: "No bytes to write" };
+    const tag = serialWriteLogTag(meta);
+    if (tag) {
+      const hex = normalized.map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+      console.log(`[serial:write logTx=${tag}] ${hex}`);
+    }
+    const buf = Buffer.from(normalized);
+    const port = activeSerialPort;
+    try {
+      await new Promise((resolve, reject) => {
+        port.write(buf, (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          port.drain((derr) => derr ? reject(derr) : resolve());
+        });
       });
-    });
-    return { ok: true };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return { ok: false, error: msg };
+      return { ok: true };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { ok: false, error: msg };
+    }
   }
-});
+);
 electron.ipcMain.handle("serial:close", async () => {
   closeActiveSerial();
   return { ok: true };

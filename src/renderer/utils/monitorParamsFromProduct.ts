@@ -125,6 +125,9 @@ export type SettingsParamGroupKey = (typeof SETTINGS_PARAM_MATRIX_ORDER)[number]
 export type SettingsDashboardConfig = {
   groups: Partial<Record<SettingsParamGroupKey, Record<string, unknown[]>>>
   sectionLayout: Partial<Record<SettingsParamGroupKey, SectionGridLayout>>
+  queryMapping: Partial<Record<SettingsParamGroupKey, MonitorQueryKey>>
+  alarmDiscreteByteIndices: [number, number, number] | null
+  alarmHoldingBitBaseRegister: number | null
 }
 
 function resolveMonitorEntry(
@@ -324,6 +327,17 @@ export function getSettingsQueryTemplates(
   return Object.keys(out).length > 0 ? out : null
 }
 
+function readSettingsQueryMapping(settings: Record<string, unknown>): Partial<Record<SettingsParamGroupKey, MonitorQueryKey>> {
+  const raw = settings.query_mapping
+  if (!isPlainObject(raw)) return {}
+  const out: Partial<Record<SettingsParamGroupKey, MonitorQueryKey>> = {}
+  for (const key of SETTINGS_PARAM_MATRIX_ORDER) {
+    const v = raw[key]
+    if (v === 'query1' || v === 'query2') out[key] = v
+  }
+  return out
+}
+
 export function getSettingsDashboardConfig(
   modelName: string | null,
   firmwareVersion: string | null,
@@ -344,11 +358,19 @@ export function getSettingsDashboardConfig(
     }
     if (Object.keys(entries).length > 0) {
       groups[key] = entries
-      sectionLayout[key] = readSectionLayout(settings, key)
+      sectionLayout[key] = readSectionLayout(settings, key as ParamGroupKey)
     }
   }
 
-  return Object.keys(groups).length > 0 ? { groups, sectionLayout } : null
+  return Object.keys(groups).length > 0
+    ? {
+        groups,
+        sectionLayout,
+        queryMapping: readSettingsQueryMapping(settings),
+        alarmDiscreteByteIndices: readMonitorAlarmDiscreteTriple(settings),
+        alarmHoldingBitBaseRegister: readMonitorAlarmB0(settings),
+      }
+    : null
 }
 
 function readMonitorQueryMapping(monitor: Record<string, unknown>): Partial<Record<ParamGroupKey, MonitorQueryKey>> {

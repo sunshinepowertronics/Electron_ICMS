@@ -19,7 +19,10 @@ export interface ICMSBridge {
   listSerialPorts: () => Promise<SerialPortListItem[]>
   openSerialPort: (opts: { path: string; baudRate: number; slaveId: string }) => Promise<SerialOpenResult>
   closeSerialPort: () => Promise<{ ok: true }>
-  writeSerialBytes: (bytes: number[]) => Promise<{ ok: true } | { ok: false; error: string }>
+  writeSerialBytes: (
+    bytes: number[],
+    meta?: { logTx?: string },
+  ) => Promise<{ ok: true } | { ok: false; error: string }>
   getSerialStatus: () => Promise<SerialStatus>
   onSerialData: (
     callback: (payload: { hex: string; length: number; bytes: number[] }) => void,
