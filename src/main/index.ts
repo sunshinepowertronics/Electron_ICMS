@@ -184,6 +184,14 @@ function publishSerialReadToRenderers(buf: Buffer): void {
   })
 }
 
+function publishRawSerialReadToRenderers(buf: Buffer): void {
+  broadcastSerial('serial:raw-data', {
+    hex: formatSerialBufferAsHex(buf),
+    length: buf.length,
+    bytes: [...buf],
+  })
+}
+
 function modbusRtuCrcOk(u: Uint8Array): boolean {
   if (u.length < 4) return false
   const c = crc16Modbus(u.subarray(0, -2))
@@ -234,6 +242,7 @@ function ingestRawSerialAndEmitModbusFrames(chunk: Buffer): void {
 function attachSerialPortModbusDeframer(port: SerialPort): void {
   serialModbusRxBuffer = []
   port.on('data', (raw: Buffer) => {
+    publishRawSerialReadToRenderers(raw)
     ingestRawSerialAndEmitModbusFrames(raw)
   })
 }

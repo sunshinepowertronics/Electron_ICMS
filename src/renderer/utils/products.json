@@ -2956,18 +2956,22 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 35 30 1D",
-              "query2": "slave_id 02 00 00 00 18 78 00",
+              "query1": "slave_id 04 00 00 00 35 crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 18 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
                 "alarm_params": "query2",
                 "version_params": "query1"
               },
-              "left_labels_1_columns": 2,
-              "left_labels_1_custom_rows": 6,
-              "right_labels_1_columns": 2,
-              "right_labels_1_custom_rows": 6,
+              "cooling_params_columns": 2,
+              "cooling_params_rows": 6,
+              "power_params_columns": 2,
+              "power_params_rows": 6,
+              "alarm_params_columns": 2,
+              "alarm_params_rows": 5,
+              "version_params_columns": 2,
+              "version_params_rows": 6,
               "cooling_params": {
                 "T1(Cab)": [
                   "°C",
@@ -3226,15 +3230,7 @@
                   "51 52",
                   "1"
                 ]
-              },
-              "cooling_params_columns": 2,
-              "cooling_params_rows": 6,
-              "power_params_columns": 2,
-              "power_params_rows": 6,
-              "alarm_params_columns": 2,
-              "alarm_params_rows": 6,
-              "version_params_columns": 2,
-              "version_params_rows": 6
+              }
             },
             {
               "option_name": "Settings",

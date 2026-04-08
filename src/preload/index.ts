@@ -22,6 +22,14 @@ contextBridge.exposeInMainWorld('icms', {
     ipcRenderer.on('serial:data', listener)
     return () => ipcRenderer.removeListener('serial:data', listener)
   },
+  onSerialRawData: (callback: (payload: { hex: string; length: number; bytes: number[] }) => void) => {
+    const listener = (
+      _: Electron.IpcRendererEvent,
+      payload: { hex: string; length: number; bytes: number[] },
+    ) => callback(payload)
+    ipcRenderer.on('serial:raw-data', listener)
+    return () => ipcRenderer.removeListener('serial:raw-data', listener)
+  },
   onSerialError: (callback: (message: string) => void) => {
     const listener = (_: Electron.IpcRendererEvent, message: string) => callback(message)
     ipcRenderer.on('serial:error', listener)

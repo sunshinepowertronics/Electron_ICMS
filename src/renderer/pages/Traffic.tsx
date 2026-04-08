@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+
 type TrafficProps = {
   connected: boolean
   path: string
@@ -29,6 +31,14 @@ function parseTrafficPayload(text: string): { kind: TrafficRowKind; query?: stri
 }
 
 export default function Traffic({ connected, path, baudRate, slaveId, lines, onClear }: TrafficProps) {
+  const logRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const el = logRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [lines])
+
   return (
     <section className="serial-readout traffic-view" aria-label="Serial traffic">
       <div className="serial-readout-bar">
@@ -59,7 +69,7 @@ export default function Traffic({ connected, path, baudRate, slaveId, lines, onC
           Clear
         </button>
       </div>
-      <div className="serial-readout-log" role="log" aria-live="polite">
+      <div ref={logRef} className="serial-readout-log" role="log" aria-live="polite">
         {!connected ? (
           <p className="serial-readout-placeholder">
             Use the toolbar Connect button to open a port and view traffic.

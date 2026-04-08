@@ -27,6 +27,9 @@ export interface ICMSBridge {
   onSerialData: (
     callback: (payload: { hex: string; length: number; bytes: number[] }) => void,
   ) => () => void
+  onSerialRawData: (
+    callback: (payload: { hex: string; length: number; bytes: number[] }) => void,
+  ) => () => void
   onSerialError: (callback: (message: string) => void) => () => void
 }
 

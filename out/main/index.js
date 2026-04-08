@@ -171,6 +171,13 @@ function publishSerialReadToRenderers(buf) {
     bytes: [...buf]
   });
 }
+function publishRawSerialReadToRenderers(buf) {
+  broadcastSerial("serial:raw-data", {
+    hex: formatSerialBufferAsHex(buf),
+    length: buf.length,
+    bytes: [...buf]
+  });
+}
 function modbusRtuCrcOk(u) {
   if (u.length < 4) return false;
   const c = crc16Modbus(u.subarray(0, -2));
@@ -216,6 +223,7 @@ function ingestRawSerialAndEmitModbusFrames(chunk) {
 function attachSerialPortModbusDeframer(port) {
   serialModbusRxBuffer = [];
   port.on("data", (raw) => {
+    publishRawSerialReadToRenderers(raw);
     ingestRawSerialAndEmitModbusFrames(raw);
   });
 }

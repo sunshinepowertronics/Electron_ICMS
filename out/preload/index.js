@@ -19,6 +19,11 @@ electron.contextBridge.exposeInMainWorld("icms", {
     electron.ipcRenderer.on("serial:data", listener);
     return () => electron.ipcRenderer.removeListener("serial:data", listener);
   },
+  onSerialRawData: (callback) => {
+    const listener = (_, payload) => callback(payload);
+    electron.ipcRenderer.on("serial:raw-data", listener);
+    return () => electron.ipcRenderer.removeListener("serial:raw-data", listener);
+  },
   onSerialError: (callback) => {
     const listener = (_, message) => callback(message);
     electron.ipcRenderer.on("serial:error", listener);

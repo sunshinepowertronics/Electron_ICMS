@@ -264,6 +264,14 @@ function RootRedirect() {
   )
 }
 
+function SetupRouteGuard() {
+  return localStorage.getItem('PinSetup') === 'true' ? <Navigate to="/login" replace /> : <Auth />
+}
+
+function LoginRouteGuard() {
+  return localStorage.getItem('PinSetup') === 'true' ? <Login /> : <Navigate to="/setup" replace />
+}
+
 function renderNavLink(item: { to: string; label: string; key: string }) {
   const { to, label, key } = item
   return (
@@ -324,6 +332,16 @@ function AppLayout() {
   const [displayView, setDisplayView] = useState<'data' | 'traffic'>('data')
   const [toolbarNow, setToolbarNow] = useState(() => new Date())
   const [dateTimeSyncOpen, setDateTimeSyncOpen] = useState(false)
+  const disconnectSerial = useCallback(async () => {
+    try {
+      await window.icms.closeSerialPort()
+    } catch {
+    } finally {
+      setSerialSession(null)
+      setSerialLines([])
+      setLastSerialRxAt(null)
+    }
+  }, [])
   const productNav = getProductNavFromStorage()
   const clearSerialTraffic = useCallback(() => {
     setSerialLines([])
@@ -361,8 +379,9 @@ function AppLayout() {
       setLastSerialRxAt(Date.now())
       serialLineKey.current += 1
       const id = serialLineKey.current
+      const upperHex = hex.toUpperCase()
       setSerialLines((prev) => {
-        const next = [...prev, `${id}\t[RX] ${hex}`]
+        const next = [...prev, `${id}\t[RX] ${upperHex}`]
         return next.length > 500 ? next.slice(-500) : next
       })
     })
@@ -373,12 +392,15 @@ function AppLayout() {
         const next = [...prev, `${id}\t[error] ${msg}`]
         return next.length > 500 ? next.slice(-500) : next
       })
+      if (/port|disconnect|closed|not open|not found|unavailable|enoent|eio/i.test(msg)) {
+        void disconnectSerial()
+      }
     })
     return () => {
       offData()
       offErr()
     }
-  }, [])
+  }, [disconnectSerial])
 
   useEffect(() => {
     const onTrafficLine = (event: Event) => {
@@ -452,10 +474,17 @@ function AppLayout() {
       if (settingsPollHoldRef.current) return
       const { label, bytes } = frames[step % frames.length]
       step += 1
-      const hex = bytes.map((b) => b.toString(16).padStart(2, '0')).join(' ')
+      const hex = bytes
+        .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+        .join(' ')
       pushLine(`[TX ${label}] ${hex}`)
       const res = await window.icms.writeSerialBytes(bytes)
-      if (!res.ok) pushLine(`[TX ${label} failed] ${res.error}`)
+      if (!res.ok) {
+        pushLine(`[TX ${label} failed] ${res.error}`)
+        if (/port|disconnect|closed|not open|not found|unavailable|enoent|eio/i.test(res.error)) {
+          void disconnectSerial()
+        }
+      }
     }
 
     const start = window.setTimeout(() => {
@@ -469,12 +498,12 @@ function AppLayout() {
       window.clearTimeout(start)
       if (pollId !== undefined) window.clearInterval(pollId)
     }
-  }, [serialSession, location.pathname, settingsParamEditBlocksPoll, displayView])
+  }, [serialSession, location.pathname, settingsParamEditBlocksPoll, displayView, disconnectSerial])
 
   return (
     <div className="app-layout">
       <aside className={`sidebar${sidebarOpen ? '' : ' sidebar--collapsed'}`}>
-        <h1 className="logo">ICMS</h1>
+
         <nav id="app-sidebar-nav" className="sidebar-nav-main" aria-label="Product">
           {productNav.map(renderNavLink)}
         </nav>
@@ -509,7 +538,7 @@ function AppLayout() {
               </svg>
             </button>
           </div>
-          <div className="content-toolbar-center">
+          <div className="content-toolbar-start">
             {storedModel || storedFirmware ? (
               <p
                 className="content-toolbar-device"
@@ -563,10 +592,7 @@ function AppLayout() {
               title={serialSession ? `Disconnect (${serialSession.path})` : 'Connect'}
               onClick={async () => {
                 if (serialSession) {
-                  await window.icms.closeSerialPort()
-                  setSerialSession(null)
-                  setSerialLines([])
-                  setLastSerialRxAt(null)
+                  await disconnectSerial()
                   return
                 }
                 setConnectOpen(true)
@@ -666,8 +692,8 @@ export default function App() {
       <div className="app-shell">
         <Routes>
           <Route path="/" element={<RootRedirect />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/setup" element={<Auth />} />
+          <Route path="/login" element={<LoginRouteGuard />} />
+          <Route path="/setup" element={<SetupRouteGuard />} />
           <Route path="/card" element={<DefaultCard />} />
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -676,7 +702,7 @@ export default function App() {
             <Route path="/help" element={<Help />} />
             <Route path="/section/:sectionName" element={<SectionPage />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth" element={<SetupRouteGuard />} />
           </Route>
         </Routes>
       </div>
