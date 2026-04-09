@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  BrowserRouter,
+  HashRouter,
   Routes,
   Route,
   NavLink,
@@ -821,7 +821,7 @@ function AppLayout() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="app-shell">
         <Routes>
           <Route path="/" element={<RootRedirect />} />
@@ -839,6 +839,6 @@ export default function App() {
           </Route>
         </Routes>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
