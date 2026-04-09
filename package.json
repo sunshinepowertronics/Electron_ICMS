@@ -1,6 +1,6 @@
 {
   "name": "icms",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Inventory and Customer Management System - Desktop",
   "main": "out/main/index.js",
   "author": "",
@@ -43,14 +43,17 @@
       "output": "dist"
     },
     "files": [
-      "out/**"
+      "out/**",
+      "package.json",
+      "node_modules/**"
     ],
     "asar": true,
     "publish": [
       {
         "provider": "github",
         "owner": "sunshinepowertronics",
-        "repo": "Electron_ICMS"
+        "repo": "Electron_ICMS",
+        "releaseType": "release"
       }
     ],
     "mac": {
