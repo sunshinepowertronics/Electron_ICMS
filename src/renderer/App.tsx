@@ -261,16 +261,20 @@ function RootRedirect() {
   return localStorage.getItem('PinSetup') === 'true' ? (
     <Navigate to="/login" replace />
   ) : (
-    <Auth />
+    <Navigate to="/first-setup" replace />
   )
 }
 
-function SetupRouteGuard() {
+function FirstSetupRouteGuard() {
   return localStorage.getItem('PinSetup') === 'true' ? <Navigate to="/login" replace /> : <Auth />
 }
 
+function SetupRouteGuard() {
+  return <Auth />
+}
+
 function LoginRouteGuard() {
-  return localStorage.getItem('PinSetup') === 'true' ? <Login /> : <Navigate to="/setup" replace />
+  return localStorage.getItem('PinSetup') === 'true' ? <Login /> : <Navigate to="/first-setup" replace />
 }
 
 function renderNavLink(item: { to: string; label: string; key: string }) {
@@ -831,6 +835,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<LoginRouteGuard />} />
+          <Route path="/first-setup" element={<FirstSetupRouteGuard />} />
           <Route path="/setup" element={<SetupRouteGuard />} />
           <Route path="/card" element={<DefaultCard />} />
           <Route element={<AppLayout />}>
