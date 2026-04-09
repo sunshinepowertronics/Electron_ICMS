@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
 import { SerialPort } from 'serialport'
 import { join } from 'path'
+import { existsSync } from 'fs'
 import type { MenuItemConstructorOptions } from 'electron'
 import { crc16Modbus } from '../shared/modbusRtu'
 import { autoUpdater } from 'electron-updater'
@@ -153,9 +154,14 @@ function createApplicationMenu(): void {
 }
 
 function createWindow(): void {
+  const windowIconPath = app.isPackaged
+    ? join(process.resourcesPath, 'build', 'icon.ico')
+    : join(process.cwd(), 'build', 'icon.ico')
+
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: existsSync(windowIconPath) ? windowIconPath : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

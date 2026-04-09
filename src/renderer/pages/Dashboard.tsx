@@ -31,7 +31,6 @@ export default function Dashboard() {
   if (view === 'traffic') {
     return (
       <>
-        <h1 className="page-title">Dashboard</h1>
         <div className="traffic-log-embed">
           <Traffic
             connected={serialConnected}

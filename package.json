@@ -1,6 +1,6 @@
 {
   "name": "icms",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Inventory and Customer Management System - Desktop",
   "main": "out/main/index.js",
   "author": "",
@@ -40,7 +40,8 @@
     "appId": "com.sunshinepowertronics.icms",
     "productName": "ICMS",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "out/**",
@@ -62,9 +63,16 @@
       ]
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "nsis"
       ]
+    },
+    "nsis": {
+      "artifactName": "ICMS-Setup-${version}.${ext}",
+      "installerIcon": "build/installer-icon.ico",
+      "uninstallerIcon": "build/installer-icon.ico",
+      "installerHeaderIcon": "build/installer-icon.ico"
     },
     "linux": {
       "target": [
