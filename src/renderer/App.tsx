@@ -325,7 +325,9 @@ function UpdateOverlay() {
     const off = window.icms.onUpdateStatus(applyUpdateStatus)
     void window.icms.getUpdateStatus().then(applyUpdateStatus).catch(() => {})
     void window.icms.checkForUpdates()
-    return off
+    return () => {
+      off()
+    }
   }, [])
 
   return (
