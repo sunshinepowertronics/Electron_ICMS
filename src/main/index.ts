@@ -19,7 +19,10 @@ type UpdateStatus =
   | { state: 'downloaded'; version: string; mandatory: true }
   | { state: 'error'; message: string }
 
+let latestUpdateStatus: UpdateStatus = { state: 'idle' }
+
 function broadcastUpdateStatus(payload: UpdateStatus): void {
+  latestUpdateStatus = payload
   for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) win.webContents.send('update:status', payload)
   }
@@ -246,6 +249,10 @@ async function checkForUpdates(): Promise<void> {
 ipcMain.handle('update:check', async () => {
   await checkForUpdates()
   return { ok: true as const }
+})
+
+ipcMain.handle('update:status', async () => {
+  return latestUpdateStatus
 })
 
 ipcMain.handle('update:download', async () => {

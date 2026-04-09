@@ -25,6 +25,7 @@ export type UpdateStatus =
 export interface ICMSBridge {
   platform: string
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void
+  getUpdateStatus: () => Promise<UpdateStatus>
   checkForUpdates: () => Promise<{ ok: true }>
   downloadUpdate: () => Promise<{ ok: true } | { ok: false; error: string }>
   installUpdate: () => Promise<{ ok: true } | { ok: false; error: string }>

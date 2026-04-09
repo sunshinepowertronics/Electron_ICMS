@@ -376,7 +376,7 @@ function AppLayout() {
   }, [])
 
   useEffect(() => {
-    return window.icms.onUpdateStatus((s) => {
+    const applyUpdateStatus = (s: UpdateStatus) => {
       setUpdateStatus(s)
       if (s.state === 'available') {
         setUpdateToastOpen(true)
@@ -384,7 +384,12 @@ function AppLayout() {
       if (s.state === 'error') {
         setUpdateActionError(s.message)
       }
-    })
+    }
+
+    const off = window.icms.onUpdateStatus(applyUpdateStatus)
+    void window.icms.getUpdateStatus().then(applyUpdateStatus).catch(() => {})
+    void window.icms.checkForUpdates()
+    return off
   }, [])
 
   useEffect(() => {
