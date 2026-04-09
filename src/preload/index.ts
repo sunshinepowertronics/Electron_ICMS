@@ -2,6 +2,14 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('icms', {
   platform: process.platform,
+  onUpdateStatus: (callback: (status: import('./env').UpdateStatus) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, status: import('./env').UpdateStatus) => callback(status)
+    ipcRenderer.on('update:status', listener)
+    return () => ipcRenderer.removeListener('update:status', listener)
+  },
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  downloadUpdate: () => ipcRenderer.invoke('update:download'),
+  installUpdate: () => ipcRenderer.invoke('update:install'),
   onDisplayView: (callback: (view: 'data' | 'traffic') => void) => {
     const listener = (_: Electron.IpcRendererEvent, view: 'data' | 'traffic') => callback(view)
     ipcRenderer.on('display-options:view', listener)

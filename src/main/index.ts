@@ -3,10 +3,26 @@ import { SerialPort } from 'serialport'
 import { join } from 'path'
 import type { MenuItemConstructorOptions } from 'electron'
 import { crc16Modbus } from '../shared/modbusRtu'
+import { autoUpdater } from 'electron-updater'
 
 let activeSerialPort: SerialPort | null = null
 let serialSession: { path: string; baudRate: number; slaveId: string } | null = null
 let serialModbusRxBuffer: number[] = []
+
+type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'available'; version: string; releaseName?: string | null; releaseNotes?: string | null; mandatory: true }
+  | { state: 'not-available' }
+  | { state: 'downloading'; percent?: number; bytesPerSecond?: number; transferred?: number; total?: number }
+  | { state: 'downloaded'; version: string; mandatory: true }
+  | { state: 'error'; message: string }
+
+function broadcastUpdateStatus(payload: UpdateStatus): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('update:status', payload)
+  }
+}
 
 function broadcastSerial(channel: string, payload: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -154,6 +170,100 @@ function createWindow(): void {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+function asTextReleaseNotes(notes: unknown): string | null {
+  if (!notes) return null
+  if (typeof notes === 'string') return notes
+  if (Array.isArray(notes)) {
+    const parts = notes
+      .map((n) => (n && typeof n === 'object' && 'note' in n ? String((n as { note?: unknown }).note ?? '') : ''))
+      .filter(Boolean)
+    return parts.length ? parts.join('\n\n') : null
+  }
+  return null
+}
+
+function configureAutoUpdater(): void {
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('checking-for-update', () => {
+    broadcastUpdateStatus({ state: 'checking' })
+  })
+
+  autoUpdater.on('update-available', (info) => {
+    broadcastUpdateStatus({
+      state: 'available',
+      version: info.version,
+      releaseName: info.releaseName ?? null,
+      releaseNotes: asTextReleaseNotes(info.releaseNotes),
+      mandatory: true,
+    })
+  })
+
+  autoUpdater.on('update-not-available', () => {
+    broadcastUpdateStatus({ state: 'not-available' })
+  })
+
+  autoUpdater.on('download-progress', (p) => {
+    broadcastUpdateStatus({
+      state: 'downloading',
+      percent: typeof p.percent === 'number' ? p.percent : undefined,
+      bytesPerSecond: p.bytesPerSecond,
+      transferred: p.transferred,
+      total: p.total,
+    })
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    broadcastUpdateStatus({ state: 'downloaded', version: info.version, mandatory: true })
+  })
+
+  autoUpdater.on('error', (err) => {
+    broadcastUpdateStatus({ state: 'error', message: err?.message ? String(err.message) : 'Update error' })
+  })
+}
+
+async function checkForUpdates(): Promise<void> {
+  if (!app.isPackaged) {
+    broadcastUpdateStatus({ state: 'idle' })
+    return
+  }
+  try {
+    await autoUpdater.checkForUpdates()
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    broadcastUpdateStatus({ state: 'error', message: msg })
+  }
+}
+
+ipcMain.handle('update:check', async () => {
+  await checkForUpdates()
+  return { ok: true as const }
+})
+
+ipcMain.handle('update:download', async () => {
+  if (!app.isPackaged) return { ok: false as const, error: 'Updates are disabled in development builds' }
+  try {
+    await autoUpdater.downloadUpdate()
+    return { ok: true as const }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    broadcastUpdateStatus({ state: 'error', message: msg })
+    return { ok: false as const, error: msg }
+  }
+})
+
+ipcMain.handle('update:install', async () => {
+  if (!app.isPackaged) return { ok: false as const, error: 'Cannot install updates in development builds' }
+  try {
+    autoUpdater.quitAndInstall(false, true)
+    return { ok: true as const }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return { ok: false as const, error: msg }
+  }
+})
 
 function serialPortLabel(p: {
   path: string
@@ -388,6 +498,8 @@ app.on('before-quit', () => {
 app.whenReady().then(() => {
   createApplicationMenu()
   createWindow()
+  configureAutoUpdater()
+  void checkForUpdates()
 })
 
 app.on('window-all-closed', () => {

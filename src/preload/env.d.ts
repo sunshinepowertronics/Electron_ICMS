@@ -13,8 +13,21 @@ export type SerialStatus =
 
 export type DisplayView = 'data' | 'traffic'
 
+export type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'available'; version: string; releaseName?: string | null; releaseNotes?: string | null; mandatory: true }
+  | { state: 'not-available' }
+  | { state: 'downloading'; percent?: number; bytesPerSecond?: number; transferred?: number; total?: number }
+  | { state: 'downloaded'; version: string; mandatory: true }
+  | { state: 'error'; message: string }
+
 export interface ICMSBridge {
   platform: string
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void
+  checkForUpdates: () => Promise<{ ok: true }>
+  downloadUpdate: () => Promise<{ ok: true } | { ok: false; error: string }>
+  installUpdate: () => Promise<{ ok: true } | { ok: false; error: string }>
   onDisplayView: (callback: (view: DisplayView) => void) => () => void
   listSerialPorts: () => Promise<SerialPortListItem[]>
   openSerialPort: (opts: { path: string; baudRate: number; slaveId: string }) => Promise<SerialOpenResult>

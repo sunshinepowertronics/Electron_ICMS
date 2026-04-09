@@ -26,6 +26,7 @@ import { SidebarNavIcon } from './components/SidebarNavIcon'
 import { getProductNavFromStorage, tailNavItems } from './utils/productNav'
 import { DisplayViewProvider } from './context/DisplayViewContext'
 import { STORAGE_FIRMWARE, STORAGE_MODEL } from './utils/deviceStorage'
+import type { UpdateStatus } from '../preload/env'
 import {
   getMonitorDashboardConfig,
   getMonitorQueryTemplates,
@@ -311,6 +312,10 @@ function AppLayout() {
 
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [connectOpen, setConnectOpen] = useState(false)
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'idle' })
+  const [updateToastOpen, setUpdateToastOpen] = useState(false)
+  const [updateBusy, setUpdateBusy] = useState(false)
+  const [updateActionError, setUpdateActionError] = useState<string | null>(null)
   const [serialSession, setSerialSession] = useState<{
     path: string
     baudRate: number
@@ -368,6 +373,18 @@ function AppLayout() {
   useEffect(() => {
     const id = window.setInterval(() => setToolbarNow(new Date()), 1000)
     return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    return window.icms.onUpdateStatus((s) => {
+      setUpdateStatus(s)
+      if (s.state === 'available') {
+        setUpdateToastOpen(true)
+      }
+      if (s.state === 'error') {
+        setUpdateActionError(s.message)
+      }
+    })
   }, [])
 
   useEffect(() => {
@@ -502,6 +519,122 @@ function AppLayout() {
 
   return (
     <div className="app-layout">
+      {updateToastOpen && updateStatus.state === 'available' ? (
+        <div className="update-toast" role="status" aria-live="polite">
+          <div className="update-toast-title">Update available</div>
+          <div className="update-toast-body">Version {updateStatus.version} is available. Update is required.</div>
+          <button
+            type="button"
+            className="update-toast-close"
+            aria-label="Dismiss update notification"
+            onClick={() => setUpdateToastOpen(false)}
+          >
+            <MdClose aria-hidden />
+          </button>
+        </div>
+      ) : null}
+
+      {updateStatus.state === 'available' ||
+      updateStatus.state === 'downloading' ||
+      updateStatus.state === 'downloaded' ? (
+        <div className="update-modal-backdrop" role="presentation">
+          <div className="update-modal" role="dialog" aria-modal="true" aria-labelledby="update-modal-title">
+            <div className="update-modal-header">
+              <div className="update-modal-header-text">
+                <div>
+                  <h2 id="update-modal-title" className="update-modal-title">
+                    Update required
+                  </h2>
+                  <p className="update-modal-subtitle">A new version is available and must be installed to continue.</p>
+                </div>
+              </div>
+            </div>
+            <div className="update-modal-body">
+              {updateStatus.state === 'available' ? (
+                <>
+                  <p className="update-modal-line">
+                    New version: <strong>{updateStatus.version}</strong>
+                  </p>
+                  {updateStatus.releaseName ? (
+                    <p className="update-modal-line update-modal-line--muted">{updateStatus.releaseName}</p>
+                  ) : null}
+                  {updateStatus.releaseNotes ? <pre className="update-modal-notes">{updateStatus.releaseNotes}</pre> : null}
+                </>
+              ) : null}
+
+              {updateStatus.state === 'downloading' ? (
+                <>
+                  <p className="update-modal-line">Downloading update…</p>
+                  <div className="update-progress">
+                    <div
+                      className="update-progress-bar"
+                      style={{ width: `${Math.max(0, Math.min(100, updateStatus.percent ?? 0))}%` }}
+                      aria-hidden
+                    />
+                  </div>
+                  <p className="update-modal-line update-modal-line--muted">
+                    {typeof updateStatus.percent === 'number' ? `${updateStatus.percent.toFixed(1)}%` : 'Starting…'}
+                  </p>
+                </>
+              ) : null}
+
+              {updateStatus.state === 'downloaded' ? (
+                <p className="update-modal-line">
+                  Update downloaded. Restart to install <strong>{updateStatus.version}</strong>.
+                </p>
+              ) : null}
+
+              {updateActionError ? <p className="update-modal-error">{updateActionError}</p> : null}
+            </div>
+            <div className="update-modal-footer">
+              {updateStatus.state === 'available' ? (
+                <button
+                  type="button"
+                  className="update-modal-btn update-modal-btn--primary"
+                  disabled={updateBusy}
+                  onClick={async () => {
+                    setUpdateActionError(null)
+                    setUpdateBusy(true)
+                    try {
+                      const res = await window.icms.downloadUpdate()
+                      if (!res.ok) setUpdateActionError(res.error)
+                    } finally {
+                      setUpdateBusy(false)
+                    }
+                  }}
+                >
+                  {updateBusy ? 'Starting…' : 'Download update'}
+                </button>
+              ) : null}
+              {updateStatus.state === 'downloading' ? (
+                <button type="button" className="update-modal-btn update-modal-btn--primary" disabled>
+                  Downloading…
+                </button>
+              ) : null}
+              {updateStatus.state === 'downloaded' ? (
+                <button
+                  type="button"
+                  className="update-modal-btn update-modal-btn--primary"
+                  disabled={updateBusy}
+                  onClick={async () => {
+                    setUpdateActionError(null)
+                    setUpdateBusy(true)
+                    try {
+                      const res = await window.icms.installUpdate()
+                      if (!res.ok) setUpdateActionError(res.error)
+                    } finally {
+                      setUpdateBusy(false)
+                    }
+                  }}
+                >
+                  Restart and install
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <aside className={`sidebar${sidebarOpen ? '' : ' sidebar--collapsed'}`}>
 
         <nav id="app-sidebar-nav" className="sidebar-nav-main" aria-label="Product">
