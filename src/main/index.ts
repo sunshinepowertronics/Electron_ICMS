@@ -90,7 +90,6 @@ function createApplicationMenu(): void {
         ...(isMac
           ? [
               { role: 'pasteAndMatchStyle' as const },
-              { role: 'delete' as const },
               { role: 'selectAll' as const },
               { type: 'separator' as const },
             ]
