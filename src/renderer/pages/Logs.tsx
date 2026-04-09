@@ -1,4 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import * as XLSX from 'xlsx'
+import {
+  MdCallReceived,
+  MdCheckCircle,
+  MdErrorOutline,
+  MdGetApp,
+  MdHourglassEmpty,
+  MdInfoOutline,
+  MdSend,
+  MdFormatListNumbered,
+  MdSync,
+  MdTableChart,
+} from 'react-icons/md'
 import { useDisplayView } from '../context/DisplayViewContext'
 import { crc16Modbus, parseSlaveByte } from '../../shared/modbusRtu'
 
@@ -177,6 +190,34 @@ function parseLogsTable(text: string): { headers: string[]; rows: string[][] } |
   return bifurcateAlarmBytes(headers, rows)
 }
 
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+function exportLogsTableToExcel(headers: string[], rows: string[][]) {
+  const aoa: (string | number)[][] = [
+    ['Sr No.', ...headers],
+    ...rows.map((row, i) => [i + 1, ...headers.map((_, j) => row[j] ?? '')]),
+  ]
+  const ws = XLSX.utils.aoa_to_sheet(aoa)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Logs')
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  const blob = new Blob([wbout], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+  downloadBlob(blob, `logs-${stamp}.xlsx`)
+}
+
 export default function Logs() {
   const { serialConnected, serialSlaveId } = useDisplayView()
 
@@ -294,7 +335,14 @@ export default function Logs() {
           <label
             className="connect-modal-label"
             htmlFor="logs-limit"
-            style={{ margin: 0, whiteSpace: 'nowrap', lineHeight: 1.2 }}
+            style={{
+              margin: 0,
+              whiteSpace: 'nowrap',
+              lineHeight: 1.2,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
           >
             No. of Logs
           </label>
@@ -304,7 +352,7 @@ export default function Logs() {
             value={limit}
             onChange={(e) => setLimit(Number(e.target.value) as (typeof LOG_LIMITS)[number])}
             style={{
-              width: '7.25rem',
+              width: '5.25rem',
               minWidth: 0,
               padding: '0.45rem 2.1rem 0.45rem 0.7rem',
               fontSize: '0.85rem',
@@ -322,31 +370,79 @@ export default function Logs() {
             className="connect-modal-btn connect-modal-btn--secondary"
             onClick={handleGetLogs}
             disabled={busy}
-            style={{ minHeight: '2.1rem', padding: '0.35rem 0.85rem', fontSize: '0.85rem' }}
+            style={{
+              minHeight: '2.1rem',
+              padding: '0.35rem 0.85rem',
+              fontSize: '0.85rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
           >
+            {busy ? (
+              <MdHourglassEmpty style={{ fontSize: '1.05rem', flexShrink: 0 }} aria-hidden />
+            ) : (
+              <MdGetApp style={{ fontSize: '1.05rem', flexShrink: 0 }} aria-hidden />
+            )}
             {busy ? 'Getting…' : 'Get Logs'}
+          </button>
+
+          <button
+            type="button"
+            className="connect-modal-btn connect-modal-btn--secondary"
+            onClick={() => parsedTable && exportLogsTableToExcel(parsedTable.headers, parsedTable.rows)}
+            disabled={!parsedTable?.rows.length}
+            style={{
+              minHeight: '2.1rem',
+              padding: '0.35rem 0.85rem',
+              fontSize: '0.85rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+          >
+            <MdTableChart style={{ fontSize: '1.05rem', flexShrink: 0 }} aria-hidden />
+            Export to Excel
           </button>
         </div>
       </div>
 
       <section className="serial-readout" aria-label="Logs response" style={{ marginTop: '1rem' }}>
-        <div className="serial-readout-bar">
+        {/* <div className="serial-readout-bar">
           <p className="serial-readout-summary">
             {error ? (
-              <strong>{error}</strong>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                <MdErrorOutline style={{ fontSize: '1.05rem', flexShrink: 0, color: '#ff7b72' }} aria-hidden />
+                <strong>{error}</strong>
+              </span>
             ) : txHex && busy ? (
-              <>Request sent - receiving data{busyDots}</>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                <MdSync style={{ fontSize: '1.05rem', flexShrink: 0, opacity: 0.9 }} aria-hidden />
+                <span>
+                  Request sent - receiving data{busyDots}
+                </span>
+              </span>
             ) : txHex ? (
-              <>Receive window completed.</>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                <MdCheckCircle style={{ fontSize: '1.05rem', flexShrink: 0, color: '#3fb950', opacity: 0.95 }} aria-hidden />
+                Receive window completed.
+              </span>
             ) : (
-              <>Ready.</>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                <MdInfoOutline style={{ fontSize: '1.05rem', flexShrink: 0, opacity: 0.85 }} aria-hidden />
+                Ready.
+              </span>
             )}
           </p>
-        </div>
+        </div> */}
         <div className="serial-readout-log" role="log" aria-live="polite">
           {txHex ? (
-            <div className="serial-readout-line">
-              <span style={{ opacity: 0.75 }}>[TX]</span> {txHex}
+            <div
+              className="serial-readout-line"
+              style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}
+            >
+              <MdSend style={{ fontSize: '0.95rem', opacity: 0.75, flexShrink: 0 }} title="Transmit" aria-hidden />
+              <span style={{ wordBreak: 'break-all' }}>{txHex}</span>
             </div>
           ) : null}
           {rxAscii && parsedTable?.rows.length ? (
@@ -446,11 +542,25 @@ export default function Logs() {
               </table>
             </div>
           ) : rxAscii ? (
-            <div className="serial-readout-line">
-              <span style={{ opacity: 0.75 }}>[RX ASCII]</span> {rxAscii}
+            <div
+              className="serial-readout-line"
+              style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}
+            >
+              <MdCallReceived
+                style={{ fontSize: '0.95rem', opacity: 0.75, flexShrink: 0 }}
+                title="Receive (ASCII)"
+                aria-hidden
+              />
+              <span style={{ wordBreak: 'break-all' }}>{rxAscii}</span>
             </div>
           ) : txHex && !busy && !error ? (
-            <p className="serial-readout-placeholder">No valid logs response frame received.</p>
+            <p
+              className="serial-readout-placeholder"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <MdInfoOutline style={{ fontSize: '1rem', flexShrink: 0, opacity: 0.75 }} aria-hidden />
+              No valid logs response frame received.
+            </p>
           ) : null}
         </div>
       </section>
