@@ -2,14 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
 import {
   MdCallReceived,
-  MdCheckCircle,
-  MdErrorOutline,
   MdGetApp,
   MdHourglassEmpty,
   MdInfoOutline,
   MdSend,
-  MdFormatListNumbered,
-  MdSync,
   MdTableChart,
 } from 'react-icons/md'
 import { useDisplayView } from '../context/DisplayViewContext'
@@ -20,8 +16,8 @@ const RECEIVE_WINDOW_MS: Record<(typeof LOG_LIMITS)[number], number> = {
   10: 3000,
   50: 5000,
   100: 7000,
-  500: 10000,
-  1000: 15000,
+  500: 35000,
+  1000: 60000,
 }
 const RECEIVE_IDLE_GAP_MS = 900
 const RECEIVE_EXTEND_MAX_MS: Record<(typeof LOG_LIMITS)[number], number> = {
@@ -226,7 +222,6 @@ export default function Logs() {
   const [error, setError] = useState<string | null>(null)
   const [txHex, setTxHex] = useState<string | null>(null)
   const [rxAscii, setRxAscii] = useState('')
-  const [busyDots, setBusyDots] = useState('')
   const parsedTable = useMemo(() => parseLogsTable(rxAscii), [rxAscii])
   const reqIdRef = useRef(0)
   const unsubscribeRef = useRef<(() => void) | null>(null)
@@ -239,17 +234,6 @@ export default function Logs() {
       unsubscribeRef.current = null
     }
   }, [])
-
-  useEffect(() => {
-    if (!busy) {
-      setBusyDots('')
-      return
-    }
-    const t = window.setInterval(() => {
-      setBusyDots((prev) => (prev.length >= 3 ? '' : `${prev}.`))
-    }, 280)
-    return () => window.clearInterval(t)
-  }, [busy])
 
   const handleGetLogs = async () => {
     reqIdRef.current += 1
@@ -319,7 +303,7 @@ export default function Logs() {
   }
 
   return (
-    <div>
+    <div className="logs-page">
       <div
         style={{
           display: 'flex',
@@ -407,7 +391,11 @@ export default function Logs() {
         </div>
       </div>
 
-      <section className="serial-readout" aria-label="Logs response" style={{ marginTop: '1rem' }}>
+      <section
+        className="serial-readout serial-readout--page"
+        aria-label="Logs response"
+        style={{ marginTop: '1rem' }}
+      >
         {/* <div className="serial-readout-bar">
           <p className="serial-readout-summary">
             {error ? (
@@ -445,10 +433,27 @@ export default function Logs() {
               <span style={{ wordBreak: 'break-all' }}>{txHex}</span>
             </div>
           ) : null}
+          {busy ? (
+            <div className="logs-fetch-panel" aria-busy="true" aria-label="Retrieving logs">
+              <div className="logs-fetch-inner">
+                <div className="logs-fetch-indicator" aria-hidden>
+                  <span className="logs-fetch-spinner" />
+                </div>
+                <div className="logs-fetch-copy">
+                  <p className="logs-fetch-eyebrow">Serial</p>
+                  <p className="logs-fetch-title">Retrieving logs</p>
+                  <p className="logs-fetch-sub">Awaiting data from the connected device.</p>
+                </div>
+              </div>
+              <div className="logs-fetch-track" aria-hidden>
+                <span className="logs-fetch-track-glow" />
+              </div>
+            </div>
+          ) : null}
           {rxAscii && parsedTable?.rows.length ? (
             <div
+              className="logs-table-wrap"
               style={{
-                overflowX: 'auto',
                 border: '1px solid rgba(240, 246, 252, 0.08)',
                 borderRadius: '10px',
                 background: 'rgba(13, 17, 23, 0.7)',
