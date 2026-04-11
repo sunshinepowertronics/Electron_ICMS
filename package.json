@@ -1,6 +1,6 @@
 {
   "name": "icms",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "Inventory and Customer Management System - Desktop",
   "main": "out/main/index.js",
   "author": "",
