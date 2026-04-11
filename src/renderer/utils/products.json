@@ -2944,6 +2944,413 @@
               "option_name": "Help"
             }
           ]
+        },
+        {
+          "version": "3.1x",
+          "is_default": false,
+          "sidebar_params": [
+            {
+              "option_name": "Monitor",
+              "query1": "slave_id 04 00 00 00 18 crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 18 crc16MOdbus",
+              "query_mapping": {
+                "cooling_params": "query1",
+                "power_params": "query1",
+                "alarm_params": "query2",
+                "version_params": "query1"
+              },
+              "cooling_params_columns": 2,
+              "cooling_params_rows": 4,
+              "power_params_columns": 2,
+              "power_params_rows": 6,
+              "alarm_params_columns": 2,
+              "alarm_params_rows": 6,
+              "version_params_columns": 2,
+              "version_params_rows": 6,
+              "cooling_params": {
+                "Temp(Cab)": [
+                  "°C",
+                  "N/A",
+                  "0",
+                  "0.01"
+                ],
+                "Temp(Amb)": [
+                  "°C",
+                  "N/A",
+                  "1",
+                  "0.01"
+                ],
+                "Δt": [
+                  "°C",
+                  "N/A",
+                  "2",
+                  "0.1",
+                  "int16"
+                ],
+                "PWM Duty": [
+                  "%",
+                  "N/A",
+                  "3",
+                  "1"
+                ],
+                "Fan 1 Run Hour": [
+                  "hr",
+                  "N/A",
+                  "7",
+                  "1"
+                ],
+                "Fan 2 Run Hour": [
+                  "hr",
+                  "N/A",
+                  "8",
+                  "1"
+                ],
+                "Fan 3 Run Hour": [
+                  "hr",
+                  "N/A",
+                  "9",
+                  "1"
+                ],
+                "Fan 4 Run Hour": [
+                  "hr",
+                  "N/A",
+                  "10",
+                  "1"
+                ],
+                "Fan 5 Run Hour": [
+                  "hr",
+                  "N/A",
+                  "11",
+                  "1"
+                ],
+                "Fan 6 Run Hour": [
+                  "hr",
+                  "N/A",
+                  "12",
+                  "1"
+                ]
+              },
+              "power_params": {
+                "System Voltage": [
+                  "V",
+                  "N/A",
+                  "4",
+                  "0.1"
+                ],
+                "System Power": [
+                  "W",
+                  "N/A",
+                  "5",
+                  "0.1"
+                ],
+                "System Energy": [
+                  "kWh",
+                  "N/A",
+                  "6",
+                  "0.1"
+                ]
+              },
+              "b0": "0",
+              "b1": "1",
+              "b2": "2",
+              "alarm_params": {
+                "Smoke": [
+                  "",
+                  "N/A",
+                  "0",
+                  "1",
+                  "bit"
+                ],
+                "Door": [
+                  "",
+                  "N/A",
+                  "1",
+                  "1",
+                  "bit"
+                ],
+                "HCT": [
+                  "",
+                  "N/A",
+                  "2",
+                  "1",
+                  "bit"
+                ],
+                "Usys": [
+                  "",
+                  "N/A",
+                  "14 10",
+                  "1",
+                  "bit"
+                ],
+                "T1 Sensor": [
+                  "",
+                  "N/A",
+                  "11",
+                  "1",
+                  "bit"
+                ],
+                "T2 Sensor": [
+                  "",
+                  "N/A",
+                  "12",
+                  "1",
+                  "bit"
+                ],
+                "Fan On": [
+                  "",
+                  "N/A",
+                  "13",
+                  "1",
+                  "bit",
+                  "fan_status"
+                ],
+                "Fan 1 Status": [
+                  "",
+                  "N/A",
+                  "4",
+                  "1",
+                  "bit"
+                ],
+                "Fan 2 Status": [
+                  "",
+                  "N/A",
+                  "5",
+                  "1",
+                  "bit"
+                ],
+                "Fan 3 Status": [
+                  "",
+                  "N/A",
+                  "6",
+                  "1",
+                  "bit"
+                ],
+                "Fan 4 Status": [
+                  "",
+                  "N/A",
+                  "7",
+                  "1",
+                  "bit"
+                ],
+                "Fan 5 Status": [
+                  "",
+                  "N/A",
+                  "8",
+                  "1",
+                  "bit"
+                ],
+                "Fan 6 Status": [
+                  "",
+                  "N/A",
+                  "9",
+                  "1",
+                  "bit"
+                ]
+              },
+              "version_params": {
+                "FTU HW Model No": [
+                  "",
+                  "N/A",
+                  "13",
+                  "1"
+                ],
+                "FTU SW Version": [
+                  "",
+                  "N/A",
+                  "14",
+                  "0.001"
+                ],
+                "number_of_fans": [
+                  "",
+                  "N/A",
+                  "16",
+                  "1",
+                  "hide"
+                ]
+              }
+            },
+            {
+              "option_name": "Settings",
+              "query1": "slave_id 03 00 00 00 18 crc16MOdbus",
+              "query_mapping": {
+                "cooling_params": "query1",
+                "alarm_params": "query1",
+                "version_params": "query1"
+              },
+              "cooling_params_columns": 1,
+              "cooling_params_rows": 8,
+              "alarm_params_columns": 2,
+              "alarm_params_rows": 5,
+              "version_params_columns": 2,
+              "version_params_rows": 5,
+              "slave_id": "0x01",
+              "cooling_params": {
+                "Power On Delay": [
+                  "sec",
+                  "N/A",
+                  "0",
+                  "1",
+                  "05-60"
+                ],
+                "High Cabinet Temp (HCT)": [
+                  "°C",
+                  "N/A",
+                  "1",
+                  "1",
+                  "45-60"
+                ],
+                "No. Of Fan": [
+                  "",
+                  "N/A",
+                  "2",
+                  "1",
+                  "1-6"
+                ],
+                "Max Duty Lock (Noise Limit)": [
+                  "%",
+                  "N/A",
+                  "3",
+                  "1",
+                  "80-99"
+                ],
+                "Fan Minimum Duty": [
+                  "%",
+                  "N/A",
+                  "4",
+                  "1",
+                  "20-40"
+                ],
+                "Fan Starting Temperature": [
+                  "°C",
+                  "N/A",
+                  "5",
+                  "1",
+                  "25-32"
+                ],
+                "Usys High Level": [
+                  "V",
+                  "N/A",
+                  "6",
+                  "1",
+                  "60-75"
+                ],
+                "Sensor Fail Duty": [
+                  "%",
+                  "N/A",
+                  "7",
+                  "1",
+                  "50-99"
+                ],
+                "Usys Low Level": [
+                  "V",
+                  "N/A",
+                  "8",
+                  "1",
+                  "35-45"
+                ],
+                "Calibration T_cab": [
+                  "",
+                  "N/A",
+                  "20",
+                  "1",
+                  "40-60"
+                ],
+                "Calibration T_amb": [
+                  "",
+                  "N/A",
+                  "21",
+                  "1",
+                  "40-60"
+                ]
+              },
+              "alarm_params": {
+                "Smoke": [
+                  "",
+                  "N/A",
+                  "9",
+                  "1"
+                ],
+                "Door": [
+                  "",
+                  "N/A",
+                  "10",
+                  "1"
+                ],
+                "High Temp Alarm": [
+                  "",
+                  "N/A",
+                  "11",
+                  "1"
+                ],
+                "Usys Low": [
+                  "",
+                  "N/A",
+                  "19",
+                  "1"
+                ],
+                "All Fan Fail": [
+                  "",
+                  "N/A",
+                  "12",
+                  "1"
+                ],
+                "Fan 1 Fail": [
+                  "",
+                  "N/A",
+                  "13",
+                  "1"
+                ],
+                "Fan 2 Fail": [
+                  "",
+                  "N/A",
+                  "14",
+                  "1"
+                ],
+                "Fan 3 Fail": [
+                  "",
+                  "N/A",
+                  "15",
+                  "1"
+                ],
+                "Fan 4 Fail": [
+                  "",
+                  "N/A",
+                  "16",
+                  "1"
+                ],
+                "Fan 5 Fail": [
+                  "",
+                  "N/A",
+                  "17",
+                  "1"
+                ],
+                "Fan 6 Fail": [
+                  "",
+                  "N/A",
+                  "18",
+                  "1"
+                ]
+              },
+              "version_params": {
+                "Fan Model": [
+                  "",
+                  "N/A",
+                  "22",
+                  "1"
+                ],
+                "Slave ID": [
+                  "",
+                  "N/A",
+                  "23",
+                  "1",
+                  "1-255"
+                ]
+              }
+            },
+            {
+              "option_name": "Help"
+            }
+          ]
         }
       ]
     },
