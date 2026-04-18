@@ -1,4 +1,4 @@
-# ICMS – Inventory & Customer Management System
+# ICMS – Industrial Control and Security Management
 
 Desktop app built with Electron, Vite, and React.
 
@@ -30,10 +30,3 @@ Output: `out/main`, `out/preload`, `out/renderer`.
 npm start
 ```
 
-Runs the app from the `out/` build (no Vite server).
-
-## Project layout
-
-- `src/main` – Electron main process
-- `src/preload` – Preload script (context bridge)
-- `src/renderer` – React UI (Dashboard, Inventory, Customers, Orders, Settings)
