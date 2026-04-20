@@ -1,4 +1,4 @@
-# ICMS – Industrial Control and Security Management
+# ICMS –  Industrial Cooling and Monitoring System
 
 Desktop app built with Electron, Vite, and React.
 
