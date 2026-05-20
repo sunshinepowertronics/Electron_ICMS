@@ -10,6 +10,45 @@ export function crc16Modbus(data: Uint8Array): number {
   return crc & 0xffff
 }
 
+export function modbusRtuCrcOk(u: Uint8Array, start = 0, end = u.length): boolean {
+  if (end - start < 4) return false
+  const c = crc16Modbus(u.subarray(start, end - 2))
+  return (c & 0xff) === u[end - 2]! && ((c >> 8) & 0xff) === u[end - 1]!
+}
+
+/**
+ * FC01/FC02 response length. Some devices reply with a fixed short frame where byte 2
+ * is payload (not a Modbus byte count); fall back to the shortest CRC-valid length.
+ */
+export function modbusRtuCoilReadResponseLength(u: Uint8Array, off = 0): number | null {
+  if (u.length - off < 3) return null
+  const func = u[off + 1]!
+  if (func !== 1 && func !== 2) return null
+  const bc = u[off + 2]!
+  const standardLen = 5 + bc
+  if (bc <= 250 && u.length - off >= standardLen && modbusRtuCrcOk(u, off, off + standardLen)) {
+    return standardLen
+  }
+  const maxTry = Math.min(252, u.length - off)
+  for (let len = 5; len <= maxTry; len++) {
+    if (modbusRtuCrcOk(u, off, off + len)) return len
+  }
+  return null
+}
+
+/** Payload bytes from an FC01/FC02 response (standard or compact). */
+export function modbusRtuReadCoilDiscretePayload(frame: Uint8Array): Uint8Array | null {
+  if (frame.length < 5 || !modbusRtuCrcOk(frame)) return null
+  const func = frame[1]!
+  if (func !== 1 && func !== 2) return null
+  const bc = frame[2]!
+  const standardLen = 5 + bc
+  if (bc <= 250 && frame.length === standardLen) {
+    return frame.subarray(3, 3 + bc)
+  }
+  return frame.subarray(2, frame.length - 2)
+}
+
 export function parseSlaveByte(slaveIdStr: string): number {
   const s = slaveIdStr.trim()
   if (!s) return 1

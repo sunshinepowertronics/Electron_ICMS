@@ -1,4 +1,4 @@
-import { crc16Modbus } from '../../shared/modbusRtu'
+import { modbusRtuCrcOk, modbusRtuReadCoilDiscretePayload } from '../../shared/modbusRtu'
 import {
   dualBitHighLowNormal,
   getAlarmMapping,
@@ -48,19 +48,19 @@ function hexStringToBytes(hex: string): number[] | null {
   return out
 }
 
-function modbusCrcOk(bytes: number[]): boolean {
-  if (bytes.length < 4) return false
-  const body = new Uint8Array(bytes.slice(0, -2))
-  const c = crc16Modbus(body)
-  return (c & 0xff) === bytes[bytes.length - 2] && ((c >> 8) & 0xff) === bytes[bytes.length - 1]
-}
-
 function parseReadResponse(bytes: number[]): { func: number; data: Uint8Array } | null {
-  if (bytes.length < 5 || !modbusCrcOk(bytes)) return null
-  const func = bytes[1]
+  if (bytes.length < 5) return null
+  const frame = Uint8Array.from(bytes)
+  if (!modbusRtuCrcOk(frame)) return null
+  const func = bytes[1]!
   if (func & 0x80) return null
-  if (func !== 1 && func !== 2 && func !== 3 && func !== 4) return null
-  const bc = bytes[2]
+  if (func === 1 || func === 2) {
+    const data = modbusRtuReadCoilDiscretePayload(frame)
+    if (!data?.length) return null
+    return { func, data }
+  }
+  if (func !== 3 && func !== 4) return null
+  const bc = bytes[2]!
   if (bytes.length < 5 + bc) return null
   return { func, data: Uint8Array.from(bytes.slice(3, 3 + bc)) }
 }

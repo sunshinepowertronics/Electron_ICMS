@@ -3,7 +3,7 @@ import { SerialPort } from 'serialport'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import type { MenuItemConstructorOptions } from 'electron'
-import { crc16Modbus } from '../shared/modbusRtu'
+import { modbusRtuCoilReadResponseLength, modbusRtuCrcOk } from '../shared/modbusRtu'
 import { autoUpdater } from 'electron-updater'
 
 let activeSerialPort: SerialPort | null = null
@@ -314,18 +314,15 @@ function publishRawSerialReadToRenderers(buf: Buffer): void {
   })
 }
 
-function modbusRtuCrcOk(u: Uint8Array): boolean {
-  if (u.length < 4) return false
-  const c = crc16Modbus(u.subarray(0, -2))
-  return (c & 0xff) === u[u.length - 2] && ((c >> 8) & 0xff) === u[u.length - 1]
-}
-
 /** Total RTU frame length from first byte at offset; null if not a recognized response shape yet. */
 function modbusRtuResponseByteLength(u: Uint8Array, off: number): number | null {
   if (u.length - off < 2) return null
   const func = u[off + 1]
   if (func & 0x80) return 5
-  if (func === 1 || func === 2 || func === 3 || func === 4) {
+  if (func === 1 || func === 2) {
+    return modbusRtuCoilReadResponseLength(u, off)
+  }
+  if (func === 3 || func === 4) {
     if (u.length - off < 3) return null
     const bc = u[off + 2]
     if (bc < 0 || bc > 250) return null

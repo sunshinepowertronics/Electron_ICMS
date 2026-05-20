@@ -2366,8 +2366,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 37 B1 DC",
-              "query2": "slave_id 02 00 00 00 18 78 00",
+              "query1": "slave_id 04 00 00 00 37 crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 18 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -2383,13 +2383,15 @@
                   "°C",
                   "N/A",
                   "34",
-                  "0.1"
+                  "0.1",
+                  "int16"
                 ],
                 "T2(Amb)": [
                   "°C",
                   "N/A",
                   "36",
-                  "0.1"
+                  "0.1",
+                  "int16"
                 ],
                 "Δt": [
                   "°C",
@@ -3342,6 +3344,271 @@
                   "",
                   "N/A",
                   "23",
+                  "1",
+                  "1-255"
+                ]
+              }
+            },
+            {
+              "option_name": "Help"
+            }
+          ]
+        },
+        {
+          "version": "3.2x",
+          "is_default": false,
+          "sidebar_params": [
+            {
+              "option_name": "Monitor",
+              "query1": "slave_id 04 00 00 00 64 crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 0B crc16MOdbus",
+              "query_mapping": {
+                "cooling_params": "query1",
+                "power_params": "query1",
+                "alarm_params": "query2",
+                "version_params": "query1"
+              },
+              "cooling_params_columns": 2,
+              "cooling_params_rows": 4,
+              "power_params_columns": 2,
+              "power_params_rows": 6,
+              "alarm_params_columns": 2,
+              "alarm_params_rows": 6,
+              "version_params_columns": 2,
+              "version_params_rows": 6,
+              "cooling_params": {
+                "Temp(Cab)": [
+                  "°C",
+                  "N/A",
+                  "0",
+                  "0.01"
+                ],
+                 "PWM Duty": [
+                  "%",
+                  "N/A",
+                  "1",
+                  "1"
+                ]
+              },
+              "power_params": {
+                "System Voltage": [
+                  "V",
+                  "N/A",
+                  "2",
+                  "0.1"
+                ]
+              },
+              "b0": "0",
+              "b1": "1",
+              "b2": "2",
+              "alarm_params": {
+                "HCT": [
+                  "",
+                  "N/A",
+                  "0",
+                  "1",
+                  "bit"
+                ],
+                "LCT": [
+                  "",
+                  "N/A",
+                  "1",
+                  "1",
+                  "bit"
+                ],
+                "Fan Fail": [
+                  "",
+                  "N/A",
+                  "2",
+                  "1",
+                  "bit",
+                  "fan_status"
+                ],
+                "Fan 1 Fail": [
+                  "",
+                  "N/A",
+                  "3",
+                  "1",
+                  "bit"
+                ],
+                "Fan 2 Fail": [
+                  "",
+                  "N/A",
+                  "4",
+                  "1",
+                  "bit"
+                ],
+                "Fan 3 Fail": [
+                  "",
+                  "N/A",
+                  "5",
+                  "1",
+                  "bit"
+                ],
+                "Fan 4 Fail": [
+                  "",
+                  "N/A",
+                  "6",
+                  "1",
+                  "bit",
+                  "fan_status"
+                ],
+                "Fan 5 Fail": [
+                  "",
+                  "N/A",
+                  "7",
+                  "1",
+                  "bit"
+                ],
+                "T1 Sensor Fail": [
+                  "",
+                  "N/A",
+                  "9",
+                  "1",
+                  "bit"
+                ],
+                "Machine Status": [
+                  "",
+                  "N/A",
+                  "10",
+                  "1",
+                  "bit"
+                ]
+              },
+              "version_params": {
+                "FTU HW Model No": [
+                  "",
+                  "N/A",
+                  "3",
+                  "1"
+                ],
+                "FTU SW Version": [
+                  "",
+                  "N/A",
+                  "4",
+                  "0.001"
+                ],
+                "System Info": [
+                  "",
+                  "N/A",
+                  "5",
+                  "1"
+                ]
+              }
+            },
+            {
+              "option_name": "Settings",
+              "query1": "slave_id 03 00 00 00 0F crc16MOdbus",
+              "query_mapping": {
+                "cooling_params": "query1",
+                "alarm_params": "query1",
+                "version_params": "query1"
+              },
+              "cooling_params_columns": 1,
+              "cooling_params_rows": 8,
+              "alarm_params_columns": 2,
+              "alarm_params_rows": 5,
+              "version_params_columns": 2,
+              "version_params_rows": 5,
+              "slave_id": "0x01",
+              "cooling_params": {
+                "High Cabinet Temp (HCT)": [
+                  "°C",
+                  "N/A",
+                  "0",
+                  "1",
+                  "25 to 45"
+                ],
+                "Low Cabinet Temp (LCT)": [
+                  "°C",
+                  "N/A",
+                  "1",
+                  "1",
+                  "-20 to 20"
+                ],
+                "No. Of Fan": [
+                  "",
+                  "N/A",
+                  "2",
+                  "1",
+                  "1 to 6"
+                ],
+                "Sensor Fail Duty": [
+                  "%",
+                  "N/A",
+                  "3",
+                  "1",
+                  "50 to 99%"
+                ],
+                "Calibration T_cab": [
+                  "",
+                  "N/A",
+                  "13",
+                  "1",
+                  "40-60"
+                ]
+              },
+              "alarm_params": {
+                "High Temp Alarm": [
+                  "",
+                  "N/A",
+                  "4",
+                  "1"
+                ],
+                "Low Temp Alarm": [
+                  "",
+                  "N/A",
+                  "5",
+                  "1"
+                ],
+                "All Fan Fail": [
+                  "",
+                  "N/A",
+                  "6",
+                  "1"
+                ],
+                "Fan 1 Fail": [
+                  "",
+                  "N/A",
+                  "7",
+                  "1"
+                ],
+                "Fan 2 Fail": [
+                  "",
+                  "N/A",
+                  "8",
+                  "1"
+                ],
+                "Fan 3 Fail": [
+                  "",
+                  "N/A",
+                  "9",
+                  "1"
+                ],
+                "Fan 4 Fail": [
+                  "",
+                  "N/A",
+                  "10",
+                  "1"
+                ],
+                "Fan 5 Fail": [
+                  "",
+                  "N/A",
+                  "11",
+                  "1"
+                ],
+                "Fan 6 Fail": [
+                  "",
+                  "N/A",
+                  "12",
+                  "1"
+                ]
+              },
+              "version_params": {
+                "Slave ID": [
+                  "",
+                  "N/A",
+                  "14",
                   "1",
                   "1-255"
                 ]
