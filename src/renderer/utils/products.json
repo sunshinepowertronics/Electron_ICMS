@@ -9,8 +9,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 0E 70 D3",
-              "query2": "slave_id 01 00 00 00 18 3D 1D",
+              "query1": "slave_id 04 00 00 00 0E crc16MOdbus",
+              "query2": "slave_id 01 00 00 00 18 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query2",
@@ -229,7 +229,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 1D 84 DE",
+              "query1": "slave_id 03 00 00 00 1D crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -434,8 +434,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 01 00 0E 4F CC",
-              "query2": "slave_id 01 00 01 00 18 D3 88",
+              "query1": "slave_id 04 00 01 00 0E crc16MOdbus",
+              "query2": "slave_id 01 00 01 00 18 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query2",
@@ -560,7 +560,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 01 00 1D 2B B0",
+              "query1": "slave_id 03 00 01 00 1D crc16MOdbus",
               "query_mapping": {
                 "alarm_params": "query1",
                 "version_params": "query1"
@@ -649,8 +649,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 0B B1 CD",
-              "query2": "01 02 00 00 00 0C 78 0F",
+              "query1": "slave_id 04 00 00 00 0B crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 0C crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -802,7 +802,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "01 03 00 00 00 16 C4 04",
+              "query1": "slave_id 03 00 00 00 16 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -951,8 +951,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 0B B1 CD",
-              "query2": "slave_id 02 00 00 00 0C 78 0F",
+              "query1": "slave_id 04 00 00 00 0B crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 0C crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -1117,7 +1117,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 16 C4 04",
+              "query1": "slave_id 03 00 00 00 16 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -1272,8 +1272,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 0B B1 CD",
-              "query2": "slave_id 02 00 00 00 0C 78 0F",
+              "query1": "slave_id 04 00 00 00 0B crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 0C crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -1451,7 +1451,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 16 C4 04",
+              "query1": "slave_id 03 00 00 00 16 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -1617,8 +1617,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 10 F1 C6",
-              "query2": "slave_id 02 00 00 00 0C 78 0F",
+              "query1": "slave_id 04 00 00 00 10 crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 0C crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -1808,7 +1808,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 16 C4 04",
+              "query1": "slave_id 03 00 00 00 16 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -2679,7 +2679,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 47 05 F8",
+              "query1": "slave_id 03 00 00 00 47 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -2940,7 +2940,7 @@
             },
             {
               "option_name": "Logs",
-              "query1": "slave_id 85 00 01 00 10 AB CD"
+              "query1": "slave_id 85 00 01 00 10 crc16MOdbus"
             },
             {
               "option_name": "Help"
@@ -3908,7 +3908,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 45 84 39",
+              "query1": "slave_id 03 00 00 00 45 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -4165,7 +4165,7 @@
             },
             {
               "option_name": "Logs",
-              "query1": "slave_id 85 00 01 00 10 AB CD"
+              "query1": "slave_id 85 00 01 00 10 crc16MOdbus"
             },
             {
               "option_name": "Help"
@@ -4717,8 +4717,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 37 B1 DC",
-              "query2": "slave_id 02 00 00 00 3C 78 1B",
+              "query1": "slave_id 04 00 00 00 37 crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 3C crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -4992,7 +4992,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 3C 45 DB",
+              "query1": "slave_id 03 00 00 00 3C crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -5234,7 +5234,7 @@
             },
             {
               "option_name": "Logs",
-              "query1": "slave_id 85 00 01 00 10 AB CD"
+              "query1": "slave_id 85 00 01 00 10 crc16MOdbus"
             },
             {
               "option_name": "Help"
@@ -5247,8 +5247,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 37 B1 DC",
-              "query2": "slave_id 02 00 00 00 18 78 00",
+              "query1": "slave_id 04 00 00 00 37 crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 18 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -5527,7 +5527,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 45 84 39",
+              "query1": "slave_id 03 00 00 00 45 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -5782,7 +5782,7 @@
             },
             {
               "option_name": "Logs",
-              "query1": "slave_id 85 00 01 00 10 AB CD"
+              "query1": "slave_id 85 00 01 00 10 crc16MOdbus"
             },
             {
               "option_name": "Help"
@@ -5800,8 +5800,8 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "01 04 00 00 00 09 30 0C",
-              "query2": "01 02 00 00 00 0A F8 0D",
+              "query1": "slave_id 04 00 00 00 09 crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 0A crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -5951,7 +5951,7 @@
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 15 84 05",
+              "query1": "slave_id 03 00 00 00 15 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -6124,7 +6124,7 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 07 B0 D5",
+              "query1": "slave_id 04 00 00 00 07 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -6241,7 +6241,7 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 07 B0 D5",
+              "query1": "slave_id 04 00 00 00 07 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
@@ -6358,7 +6358,7 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 07 B0 D5",
+              "query1": "slave_id 04 00 00 00 07 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "power_params": "query1",
