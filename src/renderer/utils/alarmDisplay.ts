@@ -14,6 +14,7 @@ const ALARM_MAPPINGS: Record<string, Record<'0' | '1', AlarmDisplay>> = {
   'External Fan 1': { '0': { value: 'OK', color: '#00ff00' }, '1': { value: 'Fail', color: '#d00000' } },
   'External Fan 2': { '0': { value: 'OK', color: '#00ff00' }, '1': { value: 'Fail', color: '#d00000' } },
   'External Fan 3': { '0': { value: 'OK', color: '#00ff00' }, '1': { value: 'Fail', color: '#d00000' } },
+  'External Fan 4': { '0': { value: 'OK', color: '#00ff00' }, '1': { value: 'Fail', color: '#d00000' } },
   'Fan 1 Fail': { '0': { value: 'OK', color: '#00ff00' }, '1': { value: 'Fail', color: '#ff4444' } },
   'Fan 2 Fail': { '0': { value: 'OK', color: '#00ff00' }, '1': { value: 'Fail', color: '#ff4444' } },
   'Fan 3 Fail': { '0': { value: 'OK', color: '#00ff00' }, '1': { value: 'Fail', color: '#ff4444' } },
@@ -69,6 +70,7 @@ export const INTERNAL_EXTERNAL_FAN_NAMES = new Set([
   'External Fan 1',
   'External Fan 2',
   'External Fan 3',
+  'External Fan 4'
 ])
 
 export function getAlarmMapping(paramName: string, bitValue: 0 | 1): AlarmDisplay {

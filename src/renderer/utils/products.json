@@ -2947,6 +2947,571 @@
             }
           ]
         },
+
+          {
+          "version": "3.0x",
+          "is_default": false,
+          "sidebar_params": [
+            {
+              "option_name": "Monitor",
+              "query1": "slave_id 04 00 00 00 37 crc16MOdbus",
+              "query2": "slave_id 02 00 00 00 18 crc16MOdbus",
+              "query_mapping": {
+                "cooling_params": "query1",
+                "power_params": "query1",
+                "alarm_params": "query2",
+                "version_params": "query1"
+              },
+              "left_labels_1_columns": 2,
+              "left_labels_1_custom_rows": 6,
+              "right_labels_1_columns": 2,
+              "right_labels_1_custom_rows": 8,
+              "cooling_params": {
+                "T1(Cab)": [
+                  "°C",
+                  "N/A",
+                  "34",
+                  "0.1",
+                  "int16"
+                ],
+                "T2(Amb)": [
+                  "°C",
+                  "N/A",
+                  "36",
+                  "0.1",
+                  "int16"
+                ],
+                "Δt": [
+                  "°C",
+                  "N/A",
+                  "37",
+                  "0.1",
+                  "int16"
+                ],
+                "Duty(Internal Fan)": [
+                  "%",
+                  "N/A",
+                  "45",
+                  "1"
+                ],
+                "Duty(External Fan)": [
+                  "%",
+                  "N/A",
+                  "46",
+                  "1"
+                ],
+                "Run Hours of Only Hex": [
+                  "",
+                  "N/A",
+                  "39 38",
+                  "1",
+                  "concat2                                                                                                                                                                                                                                                                                                                                                                                                  "
+                ],
+                "RPM(Internal Fan 1)": [
+                  "RPM",
+                  "N/A",
+                  "27",
+                  "1"
+                ],
+                "RPM(External Fan 1)": [
+                  "RPM",
+                  "N/A",
+                  "29",
+                  "1"
+                ],
+                "RPM(External Fan 2)": [
+                  "RPM",
+                  "N/A",
+                  "30",
+                  "1"
+                ],
+                "RPM(External Fan 3)": [
+                  "RPM",
+                  "N/A",
+                  "31",
+                  "1"
+                ],
+                "RPM(External Fan 4)": [
+                  "RPM",
+                  "N/A",
+                  "32",
+                  "1"
+                ]
+              },
+              "power_params": {
+                "System Voltage": [
+                  "V",
+                  "N/A",
+                  "35",
+                  "0.1"
+                ],
+                "System Current": [
+                  "A",
+                  "N/A",
+                  "42",
+                  "0.1"
+                ],
+                "System Power": [
+                  "W",
+                  "N/A",
+                  "43",
+                  "0.1"
+                ],
+                "System Energy": [
+                  "kWh",
+                  "N/A",
+                  "44",
+                  "0.01"
+                ]
+              },
+              "b0": "0",
+              "b1": "1",
+              "b2": "2",
+              "alarm_params": {
+                "Door": [
+                  "",
+                  "N/A",
+                  "12",
+                  "1",
+                  "bit"
+                ],
+                "Smoke": [
+                  "",
+                  "N/A",
+                  "13",
+                  "1",
+                  "bit"
+                ],
+                "Delta T": [
+                  "",
+                  "N/A",
+                  "21",
+                  "1",
+                  "bit"
+                ],
+                "Machine Status": [
+                  "",
+                  "N/A",
+                  "20",
+                  "1",
+                  "bit"
+                ],
+                "Cabinet Temperature": [
+                  "",
+                  "N/A",
+                  "8 9",
+                  "1",
+                  "bit"
+                ],
+                "Usys": [
+                  "",
+                  "N/A",
+                  "10 11",
+                  "1",
+                  "bit"
+                ],
+                "T1 Sensor": [
+                  "",
+                  "N/A",
+                  "6",
+                  "1",
+                  "bit"
+                ],
+                "T2 Sensor": [
+                  "",
+                  "N/A",
+                  "7",
+                  "1",
+                  "bit"
+                ],
+                "Internal Fan 1": [
+                  "",
+                  "N/A",
+                  "0",
+                  "14",
+                  "bit",
+                  [
+                    0,
+                    1,
+                    2
+                  ]
+                ],
+                "External Fan 1": [
+                  "",
+                  "N/A",
+                  "2",
+                  "16",
+                  "bit",
+                  [
+                    0,
+                    1,
+                    2
+                  ]
+                ],
+                "External Fan 2": [
+                  "",
+                  "N/A",
+                  "3",
+                  "17",
+                  "bit",
+                  [
+                    0,
+                    1,
+                    2
+                  ]
+                ],
+                "External Fan 3": [
+                  "",
+                  "N/A",
+                  "4",
+                  "18",
+                  "bit",
+                  [
+                    0,
+                    1,
+                    2
+                  ]
+                ],
+                "External Fan 4": [
+                  "",
+                  "N/A",
+                  "5",
+                  "19",
+                  "bit",
+                  [
+                    0,
+                    1,
+                    2
+                  ]
+                ]
+              },
+              "version_params": {
+                "Product Type": [
+                  "",
+                  "N/A",
+                  "0",
+                  "1"
+                ],
+                "Product Serial No": [
+                  "",
+                  "N/A",
+                  "4 15",
+                  "1",
+                  "ascii"
+                ],
+                "Protocol Version": [
+                  "",
+                  "N/A",
+                  "3",
+                  "0.1"
+                ],
+                "Site ID": [
+                  "",
+                  "N/A",
+                  "16 25",
+                  "1",
+                  "ascii"
+                ],
+                "Manufacturer Code": [
+                  "",
+                  "N/A",
+                  "1",
+                  "1"
+                ],
+                "HEX Software Version": [
+                  "",
+                  "N/A",
+                  "2",
+                  "0.1"
+                ],
+                "Date of Installation": [
+                  "",
+                  "N/A",
+                  "26",
+                  "1",
+                  "mmdd"
+                ],
+                "Installation Date": [
+                  "",
+                  "N/A",
+                  "47 48 49",
+                  "1"
+                ]
+              },
+              "cooling_params_columns": 2,
+              "cooling_params_rows": 6,
+              "power_params_columns": 2,
+              "power_params_rows": 6,
+              "alarm_params_columns": 2,
+              "alarm_params_rows": 8,
+              "version_params_columns": 2,
+              "version_params_rows": 8
+            },
+            {
+              "option_name": "Settings",
+              "query1": "slave_id 03 00 00 00 47 crc16MOdbus",
+              "query_mapping": {
+                "cooling_params": "query1",
+                "alarm_params": "query1",
+                "version_params": "query1"
+              },
+              "left_labels_1_columns": 1,
+              "left_labels_1_custom_rows": 8,
+              "right_labels_1_columns": 2,
+              "right_labels_1_custom_rows": 6,
+              "slave_id": "0x01",
+              "cooling_params": {
+                "Password": [
+                  "",
+                  "N/A",
+                  "18",
+                  "1",
+                  "100-255"
+                ],
+                "Power On Delay": [
+                  "sec",
+                  "N/A",
+                  "19",
+                  "1",
+                  "5-60"
+                ],
+                "High Temperature Alarm Point": [
+                  "°C",
+                  "N/A",
+                  "10",
+                  "0.1",
+                  "45-60"
+                ],
+                "Low Temperature Alarm Point": [
+                  "°C",
+                  "N/A",
+                  "11",
+                  "0.1",
+                  "-20 to 30",
+                  "int16"
+                ],
+                "Max Duty Lock (Noise Limit)": [
+                  "%",
+                  "N/A",
+                  "4",
+                  "1",
+                  "60-99"
+                ],
+                "Internal Fan Idle Speed": [
+                  "%",
+                  "N/A",
+                  "5",
+                  "1",
+                  "20 - 40"
+                ],
+                "Heat Exchanger Starting Temperature": [
+                  "°C",
+                  "N/A",
+                  "8",
+                  "0.1",
+                  "25-35"
+                ],
+                "Heat Exchanger Stopping Return Difference temperature": [
+                  "°C",
+                  "N/A",
+                  "9",
+                  "0.1",
+                  "20-35"
+                ],
+                "High DC Voltage Alarm Point": [
+                  "V",
+                  "N/A",
+                  "16",
+                  "0.1",
+                  "55-75"
+                ],
+                "Low DC Voltage Alarm Point": [
+                  "V",
+                  "N/A",
+                  "17",
+                  "0.1",
+                  "35-45"
+                ],
+                "Constant Duty for Fix": [
+                  "%",
+                  "N/A",
+                  "22",
+                  "1",
+                  "20-40"
+                ],
+                "Set Delta T": [
+                  "°C",
+                  "N/A",
+                  "23",
+                  "1",
+                  "02 - 15"
+                ],
+                "Duty When Any (T1/T2) Fail": [
+                  "%",
+                  "N/A",
+                  "25",
+                  "1",
+                  "60 - 99"
+                ],
+                "Calibration T1": [
+                  "",
+                  "N/A",
+                  "40",
+                  "1",
+                  "40-60"
+                ],
+                "Calibration T2": [
+                  "",
+                  "N/A",
+                  "41",
+                  "1",
+                  "40-60"
+                ]
+              },
+              "alarm_params": {
+                "Smoke Alarm": [
+                  "",
+                  "N/A",
+                  "26",
+                  "1"
+                ],
+                "Door Open": [
+                  "",
+                  "N/A",
+                  "27",
+                  "1"
+                ],
+                "High Temp Alarm": [
+                  "",
+                  "N/A",
+                  "28",
+                  "1"
+                ],
+                "Low Temp Alarm": [
+                  "",
+                  "N/A",
+                  "29",
+                  "1"
+                ],
+                "Usys High Alarm": [
+                  "",
+                  "N/A",
+                  "37",
+                  "1"
+                ],
+                "Usys Low Alarm": [
+                  "",
+                  "N/A",
+                  "38",
+                  "1"
+                ],
+                "All Fan Fail": [
+                  "",
+                  "N/A",
+                  "30",
+                  "1"
+                ],
+                "Internal Fan1 Fail": [
+                  "",
+                  "N/A",
+                  "31",
+                  "1"
+                ],
+                "External Fan1 Fail": [
+                  "",
+                  "N/A",
+                  "33",
+                  "1"
+                ],
+                "External Fan2 Fail": [
+                  "",
+                  "N/A",
+                  "34",
+                  "1"
+                ],
+                "External Fan3 Fail": [
+                  "",
+                  "N/A",
+                  "35",
+                  "1"
+                ],
+                "External Fan4 Fail": [
+                  "",
+                  "N/A",
+                  "36",
+                  "1"
+                ]
+              },
+              "version_params": {
+                "Slave ID": [
+                  "",
+                  "N/A",
+                  "42",
+                  "1",
+                  "1-99"
+                ],
+                "Site ID": [
+                  "",
+                  "N/A",
+                  "43 52",
+                  "1",
+                  "ascii",
+                  "16bit"
+                ],
+                "Product Type": [
+                  "",
+                  "N/A",
+                  "70",
+                  "1",
+                  "10-90"
+                ],
+                "Product Serial No": [
+                  "",
+                  "N/A",
+                  "58 69",
+                  "1",
+                  "ascii",
+                  "16bit"
+                ],
+                "Manufacturer Code": [
+                  "",
+                  "N/A",
+                  "53",
+                  "1"
+                ],
+                "Installation Date": [
+                  "",
+                  "N/A",
+                  "54",
+                  "1",
+                  "1-31"
+                ],
+                "Installation Month": [
+                  "",
+                  "N/A",
+                  "55",
+                  "1",
+                  "1-12"
+                ],
+                "Installation Year": [
+                  "",
+                  "N/A",
+                  "56",
+                  "1",
+                  "2025-3000"
+                ]
+              }
+            },
+            {
+              "option_name": "Logs",
+              "query1": "slave_id 85 00 01 00 10 crc16MOdbus"
+            },
+            {
+              "option_name": "Help"
+            }
+          ]
+        },
+
         {
           "version": "3.1x",
           "is_default": false,
