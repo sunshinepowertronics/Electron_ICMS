@@ -3925,7 +3925,7 @@
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 64 crc16MOdbus",
+              "query1": "slave_id 04 00 00 00 06 crc16MOdbus",
               "query2": "slave_id 02 00 00 00 0B crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
@@ -4089,7 +4089,8 @@
                   "N/A",
                   "1",
                   "1",
-                  "-20 to 20"
+                  "-20 to 20",
+                  "int16"
                 ],
                 "No. Of Fan": [
                   "",
