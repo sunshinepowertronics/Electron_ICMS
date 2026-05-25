@@ -61,6 +61,8 @@ const ALARM_MAPPINGS: Record<string, Record<'0' | '1', AlarmDisplay>> = {
   'Smoke/Door': { '0': { value: 'Closed', color: '#888888' }, '1': { value: 'Open', color: '#ff4444' } },
   'HCT/HRT': { '0': { value: 'Normal', color: '#00ff00' }, '1': { value: 'High', color: '#ff4444' } },
   'Usys Low': { '0': { value: 'Normal', color: '#00ff00' }, '1': { value: 'Low', color: '#ff9900' } },
+  'LCT': { '0': { value: 'Normal', color: '#00ff00' }, '1': { value: 'Low', color: '#ff9900' } },
+
 }
 
 export const INTERNAL_EXTERNAL_FAN_NAMES = new Set([

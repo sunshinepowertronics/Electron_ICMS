@@ -46,6 +46,15 @@ export function modbusRtuReadCoilDiscretePayload(frame: Uint8Array): Uint8Array 
   if (bc <= 250 && frame.length === standardLen) {
     return frame.subarray(3, 3 + bc)
   }
+  // Some firmwares emit a bogus byte-count value (e.g. 0x16 where it should be
+  // 0x02) but still keep the standard layout. When the declared byte count
+  // claims more bytes than physically present, treat byte 2 as a corrupt
+  // byte-count and return the bytes between it and the CRC instead of falling
+  // back to compact decoding (which would otherwise leak the bad count byte
+  // into the coil data and shift every bit position by 8).
+  if (bc > frame.length - 5) {
+    return frame.subarray(3, frame.length - 2)
+  }
   return frame.subarray(2, frame.length - 2)
 }
 

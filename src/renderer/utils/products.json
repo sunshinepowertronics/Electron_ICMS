@@ -3938,7 +3938,7 @@
               "power_params_columns": 2,
               "power_params_rows": 6,
               "alarm_params_columns": 2,
-              "alarm_params_rows": 6,
+              "alarm_params_rows": 4,
               "version_params_columns": 2,
               "version_params_rows": 6,
               "cooling_params": {
@@ -3981,13 +3981,26 @@
                   "1",
                   "bit"
                 ],
+                "T1 Sensor Fail": [
+                  "",
+                  "N/A",
+                  "9",
+                  "1",
+                  "bit"
+                ],
+                "Machine Status": [
+                  "",
+                  "N/A",
+                  "10",
+                  "1",
+                  "bit"
+                ],
                 "Fan Fail": [
                   "",
                   "N/A",
                   "2",
                   "1",
-                  "bit",
-                  "fan_status"
+                  "bit"
                 ],
                 "Fan 1 Fail": [
                   "",
@@ -4015,8 +4028,7 @@
                   "N/A",
                   "6",
                   "1",
-                  "bit",
-                  "fan_status"
+                  "bit"              
                 ],
                 "Fan 5 Fail": [
                   "",
@@ -4025,17 +4037,10 @@
                   "1",
                   "bit"
                 ],
-                "T1 Sensor Fail": [
+                "Fan 6 Fail": [
                   "",
                   "N/A",
-                  "9",
-                  "1",
-                  "bit"
-                ],
-                "Machine Status": [
-                  "",
-                  "N/A",
-                  "10",
+                  "8",
                   "1",
                   "bit"
                 ]
