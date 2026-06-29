@@ -62,6 +62,9 @@ const ALARM_MAPPINGS: Record<string, Record<'0' | '1', AlarmDisplay>> = {
   'HCT/HRT': { '0': { value: 'Normal', color: '#00ff00' }, '1': { value: 'High', color: '#ff4444' } },
   'Usys Low': { '0': { value: 'Normal', color: '#00ff00' }, '1': { value: 'Low', color: '#ff9900' } },
   'LCT': { '0': { value: 'Normal', color: '#00ff00' }, '1': { value: 'Low', color: '#ff9900' } },
+    'T_Cab Sensor': { '0': { value: 'OK', color: '#00ff00' }, '1': { value: 'Fail', color: '#ff4444' } },
+  'T_Amb Sensor': { '0': { value: 'OK', color: '#00ff00' }, '1': { value: 'Fail', color: '#ff4444' } },
+
 
 }
 
