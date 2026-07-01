@@ -262,7 +262,7 @@ export default function Help() {
 
       <footer className="help-footer">
         <span>© 2026 Sunshine Powertronics Pvt. Ltd.</span>
-        <span className="help-footer-version">SW version 2.7.28</span>
+        <span className="help-footer-version">SW version 2.7.29</span>
       </footer>
     </div>
   )
