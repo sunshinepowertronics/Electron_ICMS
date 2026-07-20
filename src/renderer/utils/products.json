@@ -7487,14 +7487,19 @@
               "option_name": "Help"
             }
           ]
-        },
+        }
+        ]
+      },
+      {
+      "product_name": "EICS42R",
+      "versions": [
         {
           "version": "3.5x",
           "is_default": false,
           "sidebar_params": [
             {
               "option_name": "Monitor",
-              "query1": "slave_id 04 00 00 00 11 crc16MOdbus", 
+              "query1": "slave_id 04 00 00 00 0D crc16MOdbus", 
               "query2": "slave_id 02 00 00 00 10 crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
@@ -7518,7 +7523,7 @@
                   "int16"
                 ],
                 "Δt": [
-                  "°C",
+                  "°C", 
                   "N/A",
                   "2",
                   "0.1",
@@ -7533,37 +7538,25 @@
                 "Fan 1 Run Hour": [
                   "hr",
                   "N/A",
-                  "7",
+                  "5",
                   "1"
                 ],
                 "Fan 2 Run Hour": [
                   "hr",
                   "N/A",
-                  "8",
+                  "6",
                   "1"
                 ],
                 "Fan 3 Run Hour": [
                   "hr",
                   "N/A",
-                  "9",
+                  "7",
                   "1"
                 ],
                 "Fan 4 Run Hour": [
                   "hr",
                   "N/A",
-                  "10",
-                  "1"
-                ],
-                "Fan 5 Run Hour": [
-                  "hr",
-                  "N/A",
-                  "11",
-                  "1"
-                ],
-                "Fan 6 Run Hour": [
-                  "hr",
-                  "N/A",
-                  "12",
+                  "8",
                   "1"
                 ]
               },
@@ -7572,18 +7565,6 @@
                   "V",
                   "N/A",
                   "4",
-                  "0.1"
-                ],
-                "System Power": [
-                  "W",
-                  "N/A",
-                  "5",
-                  "0.1"
-                ],
-                "System Energy": [
-                  "kWh",
-                  "N/A",
-                  "6",
                   "0.1"
                 ]
               },
@@ -7675,39 +7656,25 @@
                   "7",
                   "1",
                   "bit"
-                ],
-                "Fan 5 Status": [
-                  "",
-                  "N/A",
-                  "8",
-                  "1",
-                  "bit"
-                ],
-                "Fan 6 Status": [
-                  "",
-                  "N/A",
-                  "9",
-                  "1",
-                  "bit"
                 ]
               },
               "version_params": {
                 "FTU HW Model No": [
                   "",
                   "N/A",
-                  "13",
+                  "9",
                   "0.1"
                 ],
                 "FTU SW Version": [
                   "",
                   "N/A",
-                  "14",
+                  "10",
                   "0.001"
                 ],
                 "number_of_fans": [
                   "",
                   "N/A",
-                  "15",
+                  "11",
                   "1",
                   "hide"
                 ]
@@ -7717,13 +7684,13 @@
               "power_params_columns": 2,
               "power_params_rows": 4,
               "alarm_params_columns": 2,
-              "alarm_params_rows": 5,
+              "alarm_params_rows": 7,
               "version_params_columns": 2,
               "version_params_rows": 6
             },
             {
               "option_name": "Settings",
-              "query1": "slave_id 03 00 00 00 1C crc16MOdbus",
+              "query1": "slave_id 03 00 00 00 1A crc16MOdbus",
               "query_mapping": {
                 "cooling_params": "query1",
                 "alarm_params": "query1",
@@ -7763,7 +7730,7 @@
                   "N/A",
                   "3",
                   "1",
-                  "80-99"
+                  "60-99"
                 ],
                 "Fan Fix Duty Set": [
                   "%",
@@ -7796,7 +7763,7 @@
                 "Sensor Fail Duty": [
                   "%",
                   "N/A",
-                  "23",
+                  "21",
                   "1",
                   "50-99"
                 ],
@@ -7804,48 +7771,46 @@
                   "V",
                   "N/A",
                   "8",
-                  "1",
-                  "35-45"
+                  "1"
                 ],
                 "Usys High Level": [
                   "V",
                   "N/A",
                   "9",
-                  "1",
-                  "60-75"
+                  "1"
                 ],
                 "Calibration T_Cab": [
                   "",
                   "N/A",
-                  "21",
+                  "19",
                   "1",
                   "40-60"
                 ],
                 "Calibration T_Amb": [
                   "",
                   "N/A",
-                  "22",
+                  "20",
                   "1",
                   "40-60"
                 ],
                 "TCab_Mock": [
                   "",
                   "N/A",
-                  "25",
+                  "23",
                   "0",
                   "0-1500(Valid for 3 Min)"
                 ],
                 "TAmb_Mock": [
                   "",
                   "N/A",
-                  "26",
+                  "24",
                   "1",
                   "0-1500(Valid for 3 Min)"
                 ],
                 "Usys_Mock": [
                   "",
                   "N/A",
-                  "27",
+                  "25",
                   "1",
                   "0-1500(Valid 3 Min)"
                 ]
@@ -7872,7 +7837,7 @@
                 "Usys Low": [
                   "",
                   "N/A",
-                  "20",
+                  "18",
                   "1"
                 ],
                 "All Fan Fail": [
@@ -7904,25 +7869,13 @@
                   "N/A",
                   "17",
                   "1"
-                ],
-                "Fan 5 Fail": [
-                  "",
-                  "N/A",
-                  "18",
-                  "1"
-                ],
-                "Fan 6 Fail": [
-                  "",
-                  "N/A",
-                  "19",
-                  "1"
                 ]
               },
               "version_params": {
                 "Slave ID": [
                   "",
                   "N/A",
-                  "24",
+                  "22",
                   "1"
                 ]
               }
