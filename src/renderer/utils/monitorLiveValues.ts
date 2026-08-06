@@ -425,6 +425,7 @@ function applyNumberOfFansOverrides(out: Record<string, MonitorLiveCell>, numFan
   for (let i = cap + 1; i <= 6; i++) {
     out[`Fan ${i} Status`] = { ...muted }
     out[`Fan ${i} Run Hour`] = { ...muted }
+    out[`Fan ${i} Fail`] = { ...muted }
   }
 }
 

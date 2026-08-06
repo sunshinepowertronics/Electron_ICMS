@@ -7571,8 +7571,7 @@
                   "N/A",
                   "13",
                   "1",
-                  "bit",
-                  "fan_status"
+                  "bit"
                 ],
                 "Fan Fail": [
                   "",
@@ -7581,42 +7580,42 @@
                   "1",
                   "bit"
                 ],
-                "Fan 1 Status": [
+                "Fan 1 Fail": [
                   "",
                   "N/A",
                   "4",
                   "1",
                   "bit"
                 ],
-                "Fan 2 Status": [
+                "Fan 2 Fail": [
                   "",
                   "N/A",
                   "5",
                   "1",
                   "bit"
                 ],
-                "Fan 3 Status": [
+                "Fan 3 Fail": [
                   "",
                   "N/A",
                   "6",
                   "1",
                   "bit"
                 ],
-                "Fan 4 Status": [
+                "Fan 4 Fail": [
                   "",
                   "N/A",
                   "7",
                   "1",
                   "bit"
                 ],
-                "Fan 5 Status": [
+                "Fan 5 Fail": [
                   "",
                   "N/A",
                   "8",
                   "1",
                   "bit"
                 ],
-                "Fan 6 Status": [
+                "Fan 6 Fail": [
                   "",
                   "N/A",
                   "9",
