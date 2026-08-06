@@ -7487,6 +7487,181 @@
               "option_name": "Help"
             }
           ]
+        },
+        {
+          "version": "3.7x",
+          "is_default": false,
+          "sidebar_params": [
+            {
+              "option_name": "Monitor",
+              "query1": "slave_id 04 00 00 00 0E crc16MOdbus", 
+              "query2": "slave_id 01 00 00 00 10 crc16MOdbus",
+              "query_mapping": {
+                "cooling_params": "query1",
+                "power_params": "query1",
+                "alarm_params": "query2",
+                "version_params": "query1"
+              },
+              "cooling_params": {
+                "Temp(Cab)": [
+                  "°C",
+                  "N/A",
+                  "0 1",
+                  "1",
+                  "float"
+                ],
+                "No. Of Fan": [
+                  "",
+                  "N/A",
+                  "2 3",
+                  "1",
+                  "float"                
+                ]
+              },
+              "power_params": {
+                "System Voltage": [
+                  "V",
+                  "N/A",
+                  "4 5",
+                  "1",
+                  "float"
+                ]
+              },
+              "b0": "0",
+              "b1": "1",
+              "b2": "2",
+              "alarm_params": {
+                "Smoke": [
+                  "",
+                  "N/A",
+                  "0",
+                  "1",
+                  "bit"
+                ],
+                "Door": [
+                  "",
+                  "N/A",
+                  "1",
+                  "1",
+                  "bit"
+                ],
+                "HCT": [
+                  "",
+                  "N/A",
+                  "2",
+                  "1",
+                  "bit"
+                ],
+                "Usys Low": [
+                  "",
+                  "N/A",
+                  "10",
+                  "1",
+                  "bit"
+                ],
+                "T_Cab Sensor": [
+                  "",
+                  "N/A",
+                  "11",
+                  "1",
+                  "bit"
+                ],
+                "Fan On": [
+                  "",
+                  "N/A",
+                  "13",
+                  "1",
+                  "bit",
+                  "fan_status"
+                ],
+                "Fan Fail": [
+                  "",
+                  "N/A",
+                  "3",
+                  "1",
+                  "bit"
+                ],
+                "Fan 1 Status": [
+                  "",
+                  "N/A",
+                  "4",
+                  "1",
+                  "bit"
+                ],
+                "Fan 2 Status": [
+                  "",
+                  "N/A",
+                  "5",
+                  "1",
+                  "bit"
+                ],
+                "Fan 3 Status": [
+                  "",
+                  "N/A",
+                  "6",
+                  "1",
+                  "bit"
+                ],
+                "Fan 4 Status": [
+                  "",
+                  "N/A",
+                  "7",
+                  "1",
+                  "bit"
+                ],
+                "Fan 5 Status": [
+                  "",
+                  "N/A",
+                  "8",
+                  "1",
+                  "bit"
+                ],
+                "Fan 6 Status": [
+                  "",
+                  "N/A",
+                  "9",
+                  "1",
+                  "bit"
+                ]
+              },
+              "version_params": {
+                "FTU HW Model No": [
+                  "",
+                  "N/A",
+                  "10 11",
+                  "1",
+                  "float"
+                ],
+                "FTU SW Version": [
+                  "",
+                  "N/A",
+                  "12 13",
+                  "1",
+                  "float"
+                ],
+                "number_of_fans": [
+                  "",
+                  "N/A",
+                  "2 3",
+                  "1",
+                  "hide",
+                  "float"
+                ]
+              },
+              "cooling_params_columns": 2,
+              "cooling_params_rows": 4,
+              "power_params_columns": 2,
+              "power_params_rows": 4,
+              "alarm_params_columns": 2,
+              "alarm_params_rows": 5,
+              "version_params_columns": 2,
+              "version_params_rows": 6
+            
+            },
+            {
+              "option_name": "Help"
+            }
+          ]
         }
         ]
       },

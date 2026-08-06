@@ -70,12 +70,12 @@ export default function Traffic({ connected, path, baudRate, slaveId, lines, onC
         </button>
       </div>
       <div ref={logRef} className="serial-readout-log" role="log" aria-live="polite">
-        {!connected ? (
+        {lines.length === 0 ? (
           <p className="serial-readout-placeholder">
-            Use the toolbar Connect button to open a port and view traffic.
+            {connected
+              ? 'No frames yet — waiting for bytes on the wire…'
+              : 'Use the toolbar Connect button to open a port and view traffic.'}
           </p>
-        ) : lines.length === 0 ? (
-          <p className="serial-readout-placeholder">No frames yet — waiting for bytes on the wire…</p>
         ) : (
           lines.map((row, index) => {
             const tab = row.indexOf('\t')

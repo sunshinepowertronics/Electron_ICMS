@@ -482,7 +482,6 @@ function AppLayout() {
     } catch {
     } finally {
       setSerialSession(null)
-      setSerialLines([])
       setLastSerialRxAt(null)
     }
   }, [])
