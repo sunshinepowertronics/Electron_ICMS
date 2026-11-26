@@ -3,7 +3,7 @@ import { SerialPort } from 'serialport'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import type { MenuItemConstructorOptions } from 'electron'
-import { modbusRtuCoilReadResponseLength, modbusRtuCrcOk } from '../shared/modbusRtu'
+import { modbusRtuRxFrameLength } from '../shared/modbusRtu'
 import { autoUpdater } from 'electron-updater'
 
 let activeSerialPort: SerialPort | null = null
@@ -314,24 +314,6 @@ function publishRawSerialReadToRenderers(buf: Buffer): void {
   })
 }
 
-/** Total RTU frame length from first byte at offset; null if not a recognized response shape yet. */
-function modbusRtuResponseByteLength(u: Uint8Array, off: number): number | null {
-  if (u.length - off < 2) return null
-  const func = u[off + 1]
-  if (func & 0x80) return 5
-  if (func === 1 || func === 2) {
-    return modbusRtuCoilReadResponseLength(u, off)
-  }
-  if (func === 3 || func === 4) {
-    if (u.length - off < 3) return null
-    const bc = u[off + 2]
-    if (bc < 0 || bc > 250) return null
-    return 5 + bc
-  }
-  if (func === 5 || func === 6 || func === 15 || func === 16) return 8
-  return null
-}
-
 const SERIAL_RX_BUFFER_CAP = 6144
 
 function ingestRawSerialAndEmitModbusFrames(chunk: Buffer): void {
@@ -340,19 +322,16 @@ function ingestRawSerialAndEmitModbusFrames(chunk: Buffer): void {
     serialModbusRxBuffer.splice(0, serialModbusRxBuffer.length - 2048)
   }
   let guard = 0
-  while (serialModbusRxBuffer.length >= 5 && guard++ < 8000) {
+  while (serialModbusRxBuffer.length >= 2 && guard++ < 8000) {
     const u = new Uint8Array(serialModbusRxBuffer)
-    const frameLen = modbusRtuResponseByteLength(u, 0)
-    if (frameLen === null) {
+    const frameLen = modbusRtuRxFrameLength(u, 0)
+    if (frameLen === 'wait') break
+    if (frameLen === 'resync') {
       serialModbusRxBuffer.shift()
       continue
     }
     if (serialModbusRxBuffer.length < frameLen) break
     const frame = Buffer.from(serialModbusRxBuffer.slice(0, frameLen))
-    if (!modbusRtuCrcOk(new Uint8Array(frame))) {
-      serialModbusRxBuffer.shift()
-      continue
-    }
     serialModbusRxBuffer.splice(0, frameLen)
     publishSerialReadToRenderers(frame)
   }

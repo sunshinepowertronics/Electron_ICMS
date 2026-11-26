@@ -955,6 +955,10 @@
   margin-bottom: 0;
 }
 
+.connect-modal-field--after-row {
+  margin-top: 1.2rem;
+}
+
 .connect-modal-row2 {
   display: grid;
   grid-template-columns: 1fr 1fr;

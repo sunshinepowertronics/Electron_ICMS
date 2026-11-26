@@ -34,12 +34,29 @@ import {
   getSettingsQueryTemplates,
 } from './utils/monitorParamsFromProduct'
 import { buildModbusRtuFrame } from '../shared/modbusRtu'
+import { pairRxWithPendingTx } from './utils/trafficLog'
 
 type SerialPortListItem = { path: string; label: string }
 
 const BAUD_RATES = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600] as const
 
-const MONITOR_POLL_MS = 600
+/** Normal keeps the previous scan rate. 2 sec is the slowest allowed. */
+const POLL_FREQUENCIES = [
+  { id: '250', label: '250 ms', ms: 250 },
+  { id: '500', label: '500 ms', ms: 500 },
+  { id: 'normal', label: 'Normal', ms: 600 },
+  { id: '1000', label: '1 sec', ms: 1000 },
+  { id: '2000', label: '2 sec', ms: 2000 },
+] as const
+
+type PollFrequencyId = (typeof POLL_FREQUENCIES)[number]['id']
+
+const DEFAULT_POLL_FREQUENCY: PollFrequencyId = 'normal'
+
+function pollIntervalMsFor(id: string): number {
+  const match = POLL_FREQUENCIES.find((item) => item.id === id)
+  return match?.ms ?? POLL_FREQUENCIES.find((item) => item.id === DEFAULT_POLL_FREQUENCY)!.ms
+}
 
 function serialPortFieldCopy(platform: string): { label: string; selectPlaceholder: string } {
   if (platform === 'win32') {
@@ -55,13 +72,14 @@ function ConnectModal({
 }: {
   open: boolean
   onClose: () => void
-  onConnected: (info: { path: string; baudRate: number; slaveId: string }) => void
+  onConnected: (info: { path: string; baudRate: number; slaveId: string; pollIntervalMs: number }) => void
 }) {
   const [ports, setPorts] = useState<SerialPortListItem[]>([])
   const [portsLoading, setPortsLoading] = useState(false)
   const [portPath, setPortPath] = useState('')
   const [slaveId, setSlaveId] = useState('')
   const [baudRate, setBaudRate] = useState<number>(9600)
+  const [pollFrequency, setPollFrequency] = useState<PollFrequencyId>(DEFAULT_POLL_FREQUENCY)
   const [connectBusy, setConnectBusy] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
 
@@ -92,6 +110,7 @@ function ConnectModal({
       setPortPath('')
       setSlaveId('')
       setBaudRate(9600)
+      setPollFrequency(DEFAULT_POLL_FREQUENCY)
       setConnectError(null)
       setConnectBusy(false)
     }
@@ -207,6 +226,26 @@ function ConnectModal({
                 </select>
               </div>
             </div>
+            <div className="connect-modal-field connect-modal-field--after-row">
+              <label className="connect-modal-label" htmlFor="connect-poll-frequency">
+                Polling frequency
+              </label>
+              <select
+                id="connect-poll-frequency"
+                className="connect-modal-select"
+                value={pollFrequency}
+                onChange={(e) => setPollFrequency(e.target.value as PollFrequencyId)}
+              >
+                {POLL_FREQUENCIES.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+              <p className="connect-modal-hint">
+                Queries are sent to the device at this interval. Normal is the standard rate. Slowest is 2 sec.
+              </p>
+            </div>
           </div>
           {connectError ? <p className="connect-modal-error">{connectError}</p> : null}
           <div className="connect-modal-footer">
@@ -239,6 +278,7 @@ function ConnectModal({
                     path: result.path,
                     baudRate: result.baudRate,
                     slaveId: result.slaveId,
+                    pollIntervalMs: pollIntervalMsFor(pollFrequency),
                   })
                   onClose()
                 } catch (e) {
@@ -459,10 +499,12 @@ function AppLayout() {
     path: string
     baudRate: number
     slaveId: string
+    pollIntervalMs: number
   } | null>(null)
   const [serialLines, setSerialLines] = useState<string[]>([])
   const [lastSerialRxAt, setLastSerialRxAt] = useState<number | null>(null)
   const serialLineKey = useRef(0)
+  const serialRxCountRef = useRef(0)
   const settingsPollHoldRef = useRef(false)
   const [settingsParamEditBlocksPoll, setSettingsParamEditBlocksPoll] = useState(false)
   const beginSettingsParamEdit = useCallback(() => {
@@ -519,12 +561,13 @@ function AppLayout() {
 
   useEffect(() => {
     const offData = window.icms.onSerialData(({ hex }) => {
+      serialRxCountRef.current += 1
       setLastSerialRxAt(Date.now())
       serialLineKey.current += 1
       const id = serialLineKey.current
       const upperHex = hex.toUpperCase()
       setSerialLines((prev) => {
-        const next = [...prev, `${id}\t[RX] ${upperHex}`]
+        const next = pairRxWithPendingTx(prev, `${id}\t[RX] ${upperHex}`)
         return next.length > 500 ? next.slice(-500) : next
       })
     })
@@ -600,9 +643,13 @@ function AppLayout() {
     }
     if (frames.length === 0) return
 
+    const pollMs = serialSession.pollIntervalMs > 0 ? serialSession.pollIntervalMs : pollIntervalMsFor('normal')
+    const responseTimeoutMs = Math.max(pollMs, 500)
     let step = 0
-    let pollId: number | undefined
     let cancelled = false
+    let tickBusy = false
+    let finishWait: (() => void) | undefined
+    let finishDelay: (() => void) | undefined
 
     const pushLine = (text: string) => {
       serialLineKey.current += 1
@@ -613,33 +660,91 @@ function AppLayout() {
       })
     }
 
-    const tick = async () => {
-      if (settingsPollHoldRef.current) return
-      const { label, bytes } = frames[step % frames.length]
-      step += 1
-      const hex = bytes
-        .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
-        .join(' ')
-      pushLine(`[TX ${label}] ${hex}`)
-      const res = await window.icms.writeSerialBytes(bytes)
-      if (!res.ok) {
-        pushLine(`[TX ${label} failed] ${res.error}`)
-        if (/port|disconnect|closed|not open|not found|unavailable|enoent|eio/i.test(res.error)) {
-          void disconnectSerial()
+    const tick = async (): Promise<boolean> => {
+      if (settingsPollHoldRef.current || tickBusy) return false
+      tickBusy = true
+      try {
+        const { label, bytes } = frames[step % frames.length]
+        step += 1
+        const hex = bytes
+          .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+          .join(' ')
+        pushLine(`[TX ${label}] ${hex}`)
+        const res = await window.icms.writeSerialBytes(bytes)
+        if (!res.ok) {
+          pushLine(`[TX ${label} failed] ${res.error}`)
+          if (/port|disconnect|closed|not open|not found|unavailable|enoent|eio/i.test(res.error)) {
+            void disconnectSerial()
+          }
+          return false
         }
+        return true
+      } finally {
+        tickBusy = false
       }
+    }
+
+    const waitForResponse = (rxCountAtSend: number, ms: number) =>
+      new Promise<void>((resolve) => {
+        if (serialRxCountRef.current > rxCountAtSend) {
+          resolve()
+          return
+        }
+        let settled = false
+        let timer: number | undefined
+        let off: (() => void) | undefined
+        const finish = () => {
+          if (settled) return
+          settled = true
+          if (timer !== undefined) window.clearTimeout(timer)
+          off?.()
+          if (finishWait === finish) finishWait = undefined
+          resolve()
+        }
+        finishWait = finish
+        off = window.icms.onSerialData(() => finish())
+        timer = window.setTimeout(finish, ms)
+      })
+
+    const delay = (ms: number) =>
+      new Promise<void>((resolve) => {
+        let settled = false
+        let timer: number | undefined
+        const finish = () => {
+          if (settled) return
+          settled = true
+          if (timer !== undefined) window.clearTimeout(timer)
+          if (finishDelay === finish) finishDelay = undefined
+          resolve()
+        }
+        finishDelay = finish
+        timer = window.setTimeout(finish, ms)
+      })
+
+    const loop = async () => {
+      if (cancelled) return
+      const started = Date.now()
+      const rxCountAtSend = serialRxCountRef.current
+      const sent = await tick()
+      if (cancelled) return
+      if (sent) await waitForResponse(rxCountAtSend, responseTimeoutMs)
+      if (cancelled) return
+      const rest = Math.max(0, pollMs - (Date.now() - started))
+      if (rest > 0) await delay(rest)
+      if (cancelled) return
+      void loop()
     }
 
     const start = window.setTimeout(() => {
       if (cancelled) return
-      void tick()
-      pollId = window.setInterval(() => void tick(), MONITOR_POLL_MS)
+      void loop()
     }, 150)
 
     return () => {
       cancelled = true
       window.clearTimeout(start)
-      if (pollId !== undefined) window.clearInterval(pollId)
+      finishWait?.()
+      finishDelay?.()
     }
   }, [serialSession, location.pathname, settingsParamEditBlocksPoll, displayView, disconnectSerial])
 

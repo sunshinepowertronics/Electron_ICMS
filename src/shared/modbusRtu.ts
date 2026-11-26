@@ -17,9 +17,51 @@ export function modbusRtuCrcOk(u: Uint8Array, start = 0, end = u.length): boolea
 }
 
 /**
- * FC01/FC02 response length. Some devices reply with a fixed short frame where byte 2
- * is payload (not a Modbus byte count); fall back to the shortest CRC-valid length.
+ * Bytes to consume for one RTU response at `off`.
+ * `wait` — header is plausible but the body has not arrived; keep the bytes.
+ * `resync` — this offset is not a frame; drop one byte and try again.
  */
+export type ModbusRxLength = 'wait' | 'resync' | number
+
+export function modbusRtuRxFrameLength(u: Uint8Array, off = 0): ModbusRxLength {
+  if (u.length - off < 2) return 'wait'
+  const func = u[off + 1]!
+
+  if ((func & 0x80) !== 0) {
+    if (u.length - off < 5) return 'wait'
+    return modbusRtuCrcOk(u, off, off + 5) ? 5 : 'resync'
+  }
+
+  if (func === 1 || func === 2) {
+    if (u.length - off < 3) return 'wait'
+    const bc = u[off + 2]!
+    if (bc > 250) return 'resync'
+    const standardLen = 5 + bc
+    // A coil reply is only a few bytes and often arrives in pieces. Do not
+    // search for a CRC, and do not discard the header, until the declared
+    // body is actually in the buffer. FC03/FC04 already waits this way.
+    if (u.length - off < standardLen) return 'wait'
+    const framed = modbusRtuCoilReadResponseLength(u, off)
+    return framed ?? 'resync'
+  }
+
+  if (func === 3 || func === 4) {
+    if (u.length - off < 3) return 'wait'
+    const bc = u[off + 2]!
+    if (bc > 250) return 'resync'
+    const standardLen = 5 + bc
+    if (u.length - off < standardLen) return 'wait'
+    return modbusRtuCrcOk(u, off, off + standardLen) ? standardLen : 'resync'
+  }
+
+  if (func === 5 || func === 6 || func === 15 || func === 16) {
+    if (u.length - off < 8) return 'wait'
+    return modbusRtuCrcOk(u, off, off + 8) ? 8 : 'resync'
+  }
+
+  return 'resync'
+}
+
 export function modbusRtuCoilReadResponseLength(u: Uint8Array, off = 0): number | null {
   if (u.length - off < 3) return null
   const func = u[off + 1]!
